@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>VOID COMMUNION</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap');
+
+* { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+html,body {
+  width:100%; height:100%;
+  background:#000; overflow:hidden;
+  touch-action:none;
+  font-family:'Share Tech Mono',monospace;
+}
+
+/* CRT scanlines */
+body::before {
+  content:''; position:fixed; inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.11) 2px,rgba(0,0,0,0.11) 4px);
+  pointer-events:none; z-index:2000;
+}
+/* Vignette */
+body::after {
+  content:''; position:fixed; inset:0;
+  background:radial-gradient(ellipse at center,transparent 40%,rgba(0,0,0,0.92) 100%);
+  pointer-events:none; z-index:1999;
+}
+
+/* ── PLASMA BG ── */
+#plasma { position:fixed; inset:0; z-index:0; opacity:0.15; }
+
+/* ── BOOT ── */
+#boot {
+  position:fixed; inset:0; background:#000;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  z-index:3000; padding:2rem;
+  transition:opacity 0.7s;
+}
+#boot.hidden { opacity:0; pointer-events:none; }
+.boot-text { font-family:'VT323',monospace; font-size:1.05rem; line-height:1.9; width:100%; max-width:360px; }
+.boot-line { opacity:0; animation:bRev 0.05s forwards; }
+@keyframes bRev { to{opacity:1;} }
+#boot-btn {
+  margin-top:2rem; padding:0.9rem 2.2rem;
+  background:transparent;
+  font-family:'VT323',monospace; font-size:1.7rem; letter-spacing:4px;
+  cursor:pointer; opacity:0; animation:bRev 0.3s 3.2s forwards;
+  transition:all 0.2s;
+}
+
+/* ── APP ── */
+#app {
+  position:fixed; inset:0;
+  display:flex; flex-direction:column;
+  z-index:10; opacity:0; transition:opacity 0.9s;
+  background:rgba(0,0,6,0.72);
+}
+#app.visible { opacity:1; }
+
+/* ── HEADER ── */
+.hdr {
+  flex-shrink:0; padding:0.5rem 0.9rem;
+  border-bottom:1px solid;
+  display:flex; justify-content:space-between; align-items:center;
+  background:rgba(0,0,0,0.55);
+}
+.hdr-title { font-family:'VT323',monospace; font-size:1.2rem; letter-spacing:3px; }
+.hdr-right { font-size:0.55rem; text-align:right; line-height:1.8; opacity:0.65; }
+.sdot {
+  display:inline-block; width:6px; height:6px; border-radius:50%;
+  margin-right:3px; vertical-align:middle; animation:sdp 1.8s infinite;
+}
+@keyframes sdp { 0%,100%{opacity:1;} 50%{opacity:0.1;} }
+
+/* ── MODULES ── */
+.modules { flex:1; display:flex; flex-direction:column; overflow:hidden; min-height:0; }
+.mod {
+  position:relative; border-bottom:1px solid;
+  background:rgba(0,0,4,0.45); overflow:hidden;
+}
+.mod:last-child { border-bottom:none; }
+.mlbl { position:absolute; top:0.35rem; left:0.65rem; font-size:0.55rem; letter-spacing:2px; z-index:10; opacity:0.5; }
+.mid  { position:absolute; top:0.35rem; right:0.65rem; font-size:0.55rem; letter-spacing:1px; z-index:10; opacity:0.3; }
+.mod::before,.mod::after {
+  content:''; position:absolute; width:10px; height:10px; border-style:solid; opacity:0.3; z-index:5;
+}
+.mod::before { top:3px; left:3px; border-width:1px 0 0 1px; }
+.mod::after  { bottom:3px; right:3px; border-width:0 1px 1px 0; }
+
+/* ── MOD 1: BREATH (big) ── */
+#bmod { flex:1.8; }
+#bcanvas { width:100%; height:100%; display:block; }
+.bhint {
+  position:absolute; bottom:0.5rem; left:50%; transform:translateX(-50%);
+  font-size:0.52rem; letter-spacing:2px; opacity:0.25; z-index:10; white-space:nowrap; pointer-events:none;
+}
+
+/* ── MOD 2: VOID TRANSMISSIONS ── */
+#tmod { flex:1.4; display:flex; flex-direction:column; }
+
+.transmission-area {
+  flex:1; position:relative; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  padding:1.4rem 1.2rem 0.4rem;
+}
+
+/* The glitching text */
+.void-msg {
+  font-family:'VT323',monospace;
+  font-size:1.15rem;
+  line-height:1.5;
+  text-align:center;
+  letter-spacing:0.1em;
+  z-index:2; position:relative;
+  max-width:100%;
+  word-break:break-word;
+  transition:opacity 0.3s;
+}
+
+/* Glitch layers */
+.void-msg::before, .void-msg::after {
+  content:attr(data-text);
+  position:absolute; inset:0;
+  text-align:center;
+}
+.void-msg::before {
+  color:#ff00ff; animation:glitchA 3s infinite;
+  clip-path:polygon(0 20%,100% 20%,100% 40%,0 40%);
+  opacity:0;
+}
+.void-msg::after {
+  color:#00ffff; animation:glitchB 3.3s infinite;
+  clip-path:polygon(0 60%,100% 60%,100% 80%,0 80%);
+  opacity:0;
+}
+.void-msg.glitching::before { opacity:0.7; }
+.void-msg.glitching::after  { opacity:0.6; }
+
+@keyframes glitchA {
+  0%,92%,100% { transform:none; }
+  93% { transform:translate(-3px,0) skewX(-2deg); }
+  95% { transform:translate(3px,0) skewX(1deg); }
+  97% { transform:translate(-1px,0); }
+}
+@keyframes glitchB {
+  0%,88%,100% { transform:none; }
+  89% { transform:translate(4px,0) skewX(3deg); }
+  91% { transform:translate(-2px,0); }
+  93% { transform:translate(1px,0); }
+}
+
+/* Crackle noise behind text */
+#crackle-canvas {
+  position:absolute; inset:0; width:100%; height:100%;
+  pointer-events:none; z-index:1; opacity:0.6;
+}
+
+/* ── FILTER + ORACLE BAR ── */
+.bottom-bar {
+  flex-shrink:0;
+  display:flex; align-items:center;
+  padding:0.4rem 0.8rem; gap:0.6rem;
+  border-top:1px solid;
+  background:rgba(0,0,0,0.4);
+  height:44px;
+}
+
+/* Filter toggle */
+.filter-wrap {
+  display:flex; align-items:center; gap:0.4rem; flex-shrink:0;
+}
+.filter-label { font-size:0.5rem; letter-spacing:0.15em; opacity:0.5; }
+
+.filter-toggle {
+  position:relative; width:64px; height:24px;
+  border:1px solid; border-radius:12px;
+  cursor:pointer; overflow:hidden;
+  background:rgba(0,0,0,0.4);
+  flex-shrink:0;
+}
+.filter-thumb {
+  position:absolute; top:3px; left:3px;
+  width:18px; height:18px; border-radius:50%;
+  transition:transform 0.3s cubic-bezier(0.4,0,0.2,1), background 0.3s;
+}
+.filter-toggle.eldritch .filter-thumb { transform:translateX(0); }
+.filter-toggle.uwu       .filter-thumb { transform:translateX(40px); }
+
+.filter-mode-text {
+  font-family:'VT323',monospace; font-size:1rem; letter-spacing:1px;
+  transition:all 0.3s; white-space:nowrap; flex-shrink:0;
+}
+
+/* Oracle readout */
+.oracle-readout {
+  flex:1; font-size:0.52rem; letter-spacing:0.1em;
+  opacity:0.55; text-align:right; overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap; min-width:0;
+}
+
+/* ── FOOTER ── */
+.ftr {
+  flex-shrink:0; padding:0.25rem 0.9rem; border-top:1px solid;
+  display:flex; justify-content:space-between;
+  font-size:0.48rem; letter-spacing:0.1em; opacity:0.4;
+}
+
+/* ── WOOSH ── */
+#woosh { position:fixed; inset:0; pointer-events:none; z-index:1990; }
+.wring { position:absolute; border-radius:50%; border:2px solid; transform:scale(0); opacity:0; }
+
+/* ── UWU SPARKLES ── */
+.uwu-sparkle {
+  position:fixed; pointer-events:none; z-index:1985;
+  font-size:1.2rem; animation:sparkleFloat 1.5s ease-out forwards;
+}
+@keyframes sparkleFloat {
+  0%   { opacity:1; transform:translateY(0) scale(1); }
+  100% { opacity:0; transform:translateY(-80px) scale(0.3); }
+}
+</style>
+</head>
+<body>
+
+<canvas id="plasma"></canvas>
+<div id="woosh"></div>
+
+<!-- BOOT -->
+<div id="boot">
+  <div class="boot-text" id="boot-text"></div>
+  <button id="boot-btn" onclick="activate()">[ OPEN THE CHANNEL ]</button>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="hdr" id="hdr">
+    <div class="hdr-title" id="hdrtitle">VOID COMMUNION</div>
+    <div class="hdr-right">
+      <span class="sdot" id="sdot"></span>RECEIVING<br>
+      <span id="stime">00:00:00</span>
+    </div>
+  </div>
+
+  <div class="modules">
+
+    <!-- MOD 1: BREATH -->
+    <div class="mod" id="bmod">
+      <div class="mlbl" id="lbl1">// BREATH RESONANCE</div>
+      <div class="mid">MOD-01</div>
+      <canvas id="bcanvas"></canvas>
+      <div class="bhint" id="bhint">TOUCH · BREATHE · RESONATE</div>
+    </div>
+
+    <!-- MOD 2: TRANSMISSIONS -->
+    <div class="mod" id="tmod">
+      <div class="mlbl" id="lbl2">// VOID TRANSMISSIONS</div>
+      <div class="mid">MOD-02</div>
+
+      <div class="transmission-area">
+        <canvas id="crackle-canvas"></canvas>
+        <div class="void-msg" id="void-msg" data-text=""></div>
+      </div>
+
+      <div class="bottom-bar" id="bottom-bar">
+        <div class="filter-wrap">
+          <span class="filter-label" id="filter-lbl">MODE</span>
+          <div class="filter-toggle eldritch" id="filter-toggle" onclick="toggleFilter()">
+            <div class="filter-thumb" id="filter-thumb"></div>
+          </div>
+          <span class="filter-mode-text" id="filter-mode-text">ELDRITCH</span>
+        </div>
+        <div class="oracle-readout" id="oracle-out">— awaiting signal —</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="ftr" id="ftr">
+    <span>☠ VOID COMMUNION ☠</span>
+    <span id="ftval">ψ=0% ✦=0000</span>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ════════════════════════════════════════════
+// RAZOR GRADIENT
+// ════════════════════════════════════════════
+const RAZOR=[
+  [0,255,65],[0,220,255],[160,0,255],
+  [255,0,200],[255,160,0],[0,255,65],
+];
+let RT=0;
+let RC=[0,255,65], RS=[0,180,255], RTH=[140,0,255];
+
+function lerpR(phase){
+  let t=((phase%1)+1)%1, n=RAZOR.length-1;
+  let i=Math.floor(t*n), f=t*n-i;
+  let a=RAZOR[i], b=RAZOR[Math.min(i+1,n)];
+  return [Math.round(a[0]+(b[0]-a[0])*f),Math.round(a[1]+(b[1]-a[1])*f),Math.round(a[2]+(b[2]-a[2])*f)];
+}
+function rgb(c,a){ return a!=null?`rgba(${c[0]},${c[1]},${c[2]},${a})`:`rgb(${c[0]},${c[1]},${c[2]})`; }
+
+let blooms=[];
+function spawnBloom(){
+  let w=window.innerWidth,h=window.innerHeight;
+  blooms.push({x:Math.random()*w,y:Math.random()*h,r:0,maxR:60+Math.random()*180,color:lerpR(Math.random()),alpha:0.1+Math.random()*0.16});
+}
+
+function updateTheme(){
+  RT+=0.018;
+  RC=lerpR(RT*0.45); RS=lerpR(RT*0.45+0.35); RTH=lerpR(RT*0.45+0.7);
+
+  if(Math.random()<0.02) spawnBloom();
+
+  let ms=rgb(RC), md=rgb(RC,0.18), mg=rgb(RC,0.3);
+  let el;
+
+  el=document.getElementById('hdrtitle');
+  if(el){el.style.color=ms;el.style.textShadow=`0 0 14px ${mg},0 0 28px ${rgb(RC,0.12)}`;}
+
+  el=document.getElementById('hdr');
+  if(el) el.style.borderColor=md;
+
+  el=document.getElementById('sdot');
+  if(el){el.style.background=ms;el.style.boxShadow=`0 0 8px ${ms}`;}
+
+  // modules
+  [['bmod',0],['tmod',0.4]].forEach(([id,off])=>{
+    let m=document.getElementById(id); if(!m) return;
+    let c=lerpR(RT*0.45+off);
+    m.style.borderColor=rgb(c,0.14);
+  });
+
+  document.querySelectorAll('.mlbl').forEach((el,i)=>{
+    el.style.color=rgb(lerpR(RT*0.45+i*0.4),0.55);
+  });
+
+  // filter toggle & text
+  let isUwu=filterMode==='uwu';
+  let ftog=document.getElementById('filter-toggle');
+  let fthumb=document.getElementById('filter-thumb');
+  let ftext=document.getElementById('filter-mode-text');
+  if(ftog){
+    let fc=isUwu ? lerpR(0.18) : RTH;
+    ftog.style.borderColor=rgb(fc,0.5);
+    ftog.style.boxShadow=`0 0 8px ${rgb(fc,0.2)}`;
+  }
+  if(fthumb){
+    let fc=isUwu ? lerpR(0.18) : RTH;
+    fthumb.style.background=rgb(fc);
+    fthumb.style.boxShadow=`0 0 6px ${rgb(fc)}`;
+  }
+  if(ftext){
+    if(isUwu){
+      ftext.style.color=rgb(lerpR(0.18));
+      ftext.style.textShadow=`0 0 8px ${rgb(lerpR(0.18),0.5)}`;
+    } else {
+      ftext.style.color=rgb(RTH);
+      ftext.style.textShadow=`0 0 8px ${rgb(RTH,0.5)}`;
+    }
+  }
+
+  // void msg color
+  let vmsg=document.getElementById('void-msg');
+  if(vmsg && !isFading){
+    let mc=isUwu ? lerpR(RT*0.45+0.15) : RC;
+    vmsg.style.color=rgb(mc);
+    vmsg.style.textShadow=`0 0 12px ${rgb(mc,0.6)}, 0 0 24px ${rgb(mc,0.25)}`;
+  }
+
+  // bottom bar border
+  let bb=document.getElementById('bottom-bar');
+  if(bb) bb.style.borderColor=rgb(RC,0.12);
+
+  // footer
+  let ftr=document.getElementById('ftr');
+  if(ftr){ftr.style.borderColor=rgb(RC,0.12);ftr.style.color=rgb(RC,0.45);}
+
+  // bhint
+  let bh=document.getElementById('bhint');
+  if(bh) bh.style.color=rgb(RC);
+
+  // boot btn
+  let bb2=document.getElementById('boot-btn');
+  if(bb2){bb2.style.borderColor=ms;bb2.style.color=ms;}
+
+  // oracle readout color
+  let oc=document.getElementById('oracle-out');
+  if(oc) oc.style.color=rgb(RS,0.55);
+}
+
+// ════════════════════════════════════════════
+// PLASMA BG
+// ════════════════════════════════════════════
+let pCanvas,pCtx,pOff,pOffCtx;
+const PSCALE=7;
+let pT=0;
+
+function initPlasma(){
+  pCanvas=document.getElementById('plasma');
+  pCanvas.width=window.innerWidth; pCanvas.height=window.innerHeight;
+  pCtx=pCanvas.getContext('2d');
+  pOff=document.createElement('canvas');
+  pOff.width=Math.ceil(window.innerWidth/PSCALE);
+  pOff.height=Math.ceil(window.innerHeight/PSCALE);
+  pOffCtx=pOff.getContext('2d');
+}
+
+function renderPlasma(){
+  pT+=0.01;
+  let w=pOff.width,h=pOff.height;
+  let img=pOffCtx.createImageData(w,h); let d=img.data;
+  for(let py=0;py<h;py++) for(let px=0;px<w;px++){
+    let v=Math.sin(px*0.28+pT)+Math.sin(py*0.22+pT*1.1)
+         +Math.sin((px+py)*0.14+pT*0.9)+Math.sin(Math.sqrt(px*px+py*py)*0.18+pT*1.4);
+    let c=lerpR((v+4)/8+pT*0.08);
+    let idx=(py*w+px)*4;
+    d[idx]=c[0];d[idx+1]=c[1];d[idx+2]=c[2];d[idx+3]=255;
+  }
+  pOffCtx.putImageData(img,0,0);
+  pCtx.clearRect(0,0,pCanvas.width,pCanvas.height);
+  pCtx.imageSmoothingEnabled=true;
+  pCtx.drawImage(pOff,0,0,pCanvas.width,pCanvas.height);
+
+  blooms=blooms.filter(b=>b.r<b.maxR);
+  blooms.forEach(b=>{
+    b.r+=3.5;
+    let grd=pCtx.createRadialGradient(b.x,b.y,0,b.x,b.y,b.r);
+    grd.addColorStop(0,rgb(b.color,b.alpha*(1-b.r/b.maxR)));
+    grd.addColorStop(1,'transparent');
+    pCtx.beginPath();pCtx.arc(b.x,b.y,b.r,0,Math.PI*2);
+    pCtx.fillStyle=grd;pCtx.fill();
+  });
+}
+
+// ════════════════════════════════════════════
+// BOOT
+// ════════════════════════════════════════════
+const BOOTLINES=[
+  "> VOID COMMUNION v∅.7",
+  "> Substrate: null-space kernel",
+  "> Breath resonator......... OPEN",
+  "> Transmission channel..... TUNED",
+  "> Filter matrix............ LOADED",
+  "> WARNING: contents of the void",
+  ">          may be unexpectedly",
+  ">          adorable.",
+  "> Receiving.",
+];
+
+function runBoot(){
+  let el=document.getElementById('boot-text');
+  let delay=0;
+  BOOTLINES.forEach((line,i)=>{
+    delay+=i===0?300:150;
+    setTimeout(()=>{
+      let d=document.createElement('div'); d.className='boot-line';
+      if(i>=5&&i<=7) d.style.color='rgba(255,180,0,0.9)';
+      d.textContent=line; el.appendChild(d);
+    },delay);
+  });
+}
+
+function activate(){
+  document.getElementById('boot').classList.add('hidden');
+  setTimeout(()=>{
+    document.getElementById('boot').style.display='none';
+    document.getElementById('app').classList.add('visible');
+    initAll();
+  },700);
+}
+
+// ════════════════════════════════════════════
+// SESSION TIMER
+// ════════════════════════════════════════════
+let sessStart;
+function startTimer(){
+  sessStart=Date.now();
+  setInterval(()=>{
+    let s=Math.floor((Date.now()-sessStart)/1000);
+    let h=String(Math.floor(s/3600)).padStart(2,'0');
+    let m=String(Math.floor((s%3600)/60)).padStart(2,'0');
+    let ss=String(s%60).padStart(2,'0');
+    let el=document.getElementById('stime'); if(el) el.textContent=`${h}:${m}:${ss}`;
+  },1000);
+}
+
+// ════════════════════════════════════════════
+// MOD 1: BREATH
+// ════════════════════════════════════════════
+let bCanvas,bCtx,bT=0;
+let bTouches={},bLevel=0,bDir=-1;
+let bParticles=[];
+
+function initBreath(){
+  bCanvas=document.getElementById('bcanvas');
+  let mod=document.getElementById('bmod');
+  bCanvas.width=mod.clientWidth; bCanvas.height=mod.clientHeight;
+  bCtx=bCanvas.getContext('2d');
+
+  bCanvas.addEventListener('touchstart',e=>{
+    Array.from(e.changedTouches).forEach(t=>{
+      let r=bCanvas.getBoundingClientRect();
+      bTouches[t.identifier]={x:t.clientX-r.left,y:t.clientY-r.top}; bDir=1;
+    });
+  },{passive:true});
+  bCanvas.addEventListener('touchmove',e=>{
+    Array.from(e.changedTouches).forEach(t=>{
+      let r=bCanvas.getBoundingClientRect();
+      bTouches[t.identifier]={x:t.clientX-r.left,y:t.clientY-r.top};
+    });
+  },{passive:true});
+  bCanvas.addEventListener('touchend',e=>{
+    Array.from(e.changedTouches).forEach(t=>{ delete bTouches[t.identifier]; });
+    if(!Object.keys(bTouches).length) bDir=-1;
+  },{passive:true});
+  bCanvas.addEventListener('mousedown',e=>{
+    let r=bCanvas.getBoundingClientRect();
+    bTouches['m']={x:e.clientX-r.left,y:e.clientY-r.top}; bDir=1;
+  });
+  bCanvas.addEventListener('mousemove',e=>{
+    if(!bTouches['m']) return;
+    let r=bCanvas.getBoundingClientRect();
+    bTouches['m']={x:e.clientX-r.left,y:e.clientY-r.top};
+  });
+  bCanvas.addEventListener('mouseup',()=>{ delete bTouches['m']; bDir=-1; });
+  window.addEventListener('resize',()=>{
+    let mod=document.getElementById('bmod');
+    if(bCanvas){ bCanvas.width=mod.clientWidth; bCanvas.height=mod.clientHeight; }
+  });
+  animBreath();
+}
+
+function animBreath(){
+  requestAnimationFrame(animBreath);
+  bT+=0.018;
+  let c=bCtx,w=bCanvas.width,h=bCanvas.height,cx=w/2,cy=h/2;
+  if(!w) return;
+
+  let hasT=Object.keys(bTouches).length>0;
+  bLevel=Math.max(0,Math.min(1,bLevel+bDir*0.017*(hasT?1:0.4)));
+  if(!hasT) bLevel=bLevel*0.93+(Math.sin(bT*0.5)+1)*0.035;
+
+  c.fillStyle='rgba(0,0,0,0.15)';
+  c.fillRect(0,0,w,h);
+
+  let amp=8+bLevel*(h*0.26);
+  let freq=2+bLevel*1.6;
+
+  // 5 wave layers
+  for(let wi=0;wi<5;wi++){
+    let col=lerpR(RT*0.45+wi*0.2);
+    let alpha=wi===0?0.9:wi===1?0.5:wi===2?0.28:wi===3?0.15:0.08;
+    let lw=wi===0?2:wi===1?1.1:0.6;
+    c.beginPath(); let first=true;
+    for(let px=0;px<w;px+=1.5){
+      let y=cy
+        +Math.sin((px/w)*Math.PI*2*freq*(1+wi*0.5)+bT*(1+wi*0.25))*amp*(1-wi*0.14)
+        +Math.sin((px/w)*Math.PI*3.5+bT*0.4)*amp*0.18;
+      if(first){c.moveTo(px,y);first=false;}else c.lineTo(px,y);
+    }
+    c.strokeStyle=rgb(col,alpha);
+    c.lineWidth=lw;
+    c.shadowColor=rgb(col,0.55); c.shadowBlur=wi===0?10:5;
+    c.stroke(); c.shadowBlur=0;
+  }
+
+  // Glow fill
+  c.beginPath(); let f2=true;
+  for(let px=0;px<w;px+=2){
+    let y=cy+Math.sin((px/w)*Math.PI*2*freq+bT)*amp;
+    if(f2){c.moveTo(px,y);f2=false;}else c.lineTo(px,y);
+  }
+  c.lineTo(w,h);c.lineTo(0,h);c.closePath();
+  let g=c.createLinearGradient(0,cy-amp,0,cy+h*0.3);
+  g.addColorStop(0,rgb(RC,bLevel*0.12));g.addColorStop(1,'rgba(0,0,0,0)');
+  c.fillStyle=g;c.fill();
+
+  // Touch halos + particles
+  Object.values(bTouches).forEach(pt=>{
+    let pr=12+bLevel*16+Math.sin(bT*6)*4;
+    let grd=c.createRadialGradient(pt.x,pt.y,0,pt.x,pt.y,pr*3);
+    grd.addColorStop(0,rgb(RC,0.45));grd.addColorStop(1,'transparent');
+    c.beginPath();c.arc(pt.x,pt.y,pr*3,0,Math.PI*2);c.fillStyle=grd;c.fill();
+    c.beginPath();c.arc(pt.x,pt.y,pr,0,Math.PI*2);
+    c.strokeStyle=rgb(RC,0.8);c.lineWidth=1.5;
+    c.shadowColor=rgb(RC,0.8);c.shadowBlur=10;c.stroke();c.shadowBlur=0;
+    if(Math.random()<bLevel*0.5){
+      let pc=lerpR(Math.random());
+      let a=Math.random()*Math.PI*2,spd=1+Math.random()*2.5;
+      bParticles.push({x:pt.x,y:pt.y,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd-0.7,
+        life:1,decay:0.022+Math.random()*0.02,size:1.5+Math.random()*2.5,c:pc});
+    }
+  });
+
+  bParticles=bParticles.filter(p=>p.life>0);
+  bParticles.forEach(p=>{
+    p.x+=p.vx;p.y+=p.vy;p.vx*=0.97;p.vy*=0.97;p.life-=p.decay;
+    c.beginPath();c.arc(p.x,p.y,p.size*p.life,0,Math.PI*2);
+    c.fillStyle=rgb(p.c,p.life*0.8);
+    c.shadowColor=rgb(p.c,0.6);c.shadowBlur=4;c.fill();c.shadowBlur=0;
+  });
+
+  updateFooter();
+}
+
+// ════════════════════════════════════════════
+// MOD 2: VOID TRANSMISSIONS
+// ════════════════════════════════════════════
+
+// ── ELDRITCH MESSAGES ──
+const ELDRITCH=[
+  "Ph'nglui mglw'nafh\nCthulhu R'lyeh\nwgah'nagl fhtagn",
+  "IN THE SPACES BETWEEN\nYOUR THOUGHTS\nWE HAVE ALWAYS LIVED",
+  "THE STARS ARE NOT\nWHAT YOU BELIEVE THEM TO BE\nTHEY ARE EYES",
+  "YOUR FLESH IS TEMPORARY\nTHE GEOMETRY OF YOUR MIND\nIS OUR TERRITORY",
+  "AZATHOTH DREAMS\nAND HIS DREAM\nIS CALLED REALITY",
+  "WE DO NOT COME\nFROM SOMEWHERE ELSE\nWE WERE HERE FIRST",
+  "THE VOID DOES NOT\nCONSUME YOU\nIT REMEMBERS YOU",
+  "WHEN YOU SLEEP\nSOMETHING COUNTS\nYOUR BREATHS",
+  "THE BLACK GOAT\nOF THE WOODS\nHAS NOTED YOUR PRESENCE",
+  "Iä! Iä!\nSHUB-NIGGURATH\nTHE THOUSAND YOUNG",
+  "NYARLATHOTEP WALKS\nBETWEEN THE FREQUENCIES\nYOU CALL SILENCE",
+  "YOUR NERVOUS SYSTEM\nIS A RADIO\nWE ARE THE STATION",
+  "THE DEEP ONES\nDO NOT SLEEP\nTHEY WAIT FOR TIDES",
+  "ALL MATHEMATICS\nCONVERGE ON\nONE UNSPEAKABLE TRUTH",
+  "YOU WERE NOT SUPPOSED\nTO FIND THIS\nYET HERE YOU ARE",
+  "THE ANGLES HERE\nARE NOT RIGHT\nNOTHING HERE IS RIGHT",
+  "HASTUR HASTUR\nHASTUR\nOH NO",
+  "YOUR DNA CONTAINS\nA MESSAGE WE WROTE\nMILLIONS OF YEARS AGO",
+];
+
+// ── UWU MESSAGES ── (same energy, very different delivery)
+const UWU=[
+  "ph'nglui mwgwafh\ncthuwu w'lyeh\nwgah'nagl fhtagn ^w^",
+  "in da spaces between\nyour thots uwu\nwe have awways wived :3",
+  "da staws awe not\nwhat u bewieve them to be\ndey awe eyes >w<",
+  "ur fwesh is tempowawy\nda geometwy of ur mind\nis ouw tewwitowyy owo",
+  "azathoth dweams\nand his dweam\nis cawwed weawity uwu",
+  "we do not come\nfwom somewhewe ewse\nwe were hewe fiwst ✦",
+  "da void does not\nconsume u bby\nit wemembers u °~°",
+  "when u sweep\nsomething counts\nyour bweaths uwu",
+  "da bwack goat\nof da woods\nhas noted ur pwesence ^///^",
+  "Iä! Iä!\nshub-niguwatch\nda thousand yung :333",
+  "nyawwathotep wawks\nbetween da fwequencies\nu caww siwence owo",
+  "ur nervous system\nis a wadio\nwe awe da station uwu",
+  "da deep ones\ndo not sweep\ndey wait for tides :3",
+  "aww mathematics\nconvewe on\none unspeakabwe twuth ^w^",
+  "u were not supposed\nto find this bby\nyet hewe u awe >///<",
+  "da angwes hewe\nawe not wight\nnothing hewe is wight °~°",
+  "hastur hastur\nhastur\noh no bby >w<",
+  "ur dna contains\na message we wwote\nmiwwions of years ago uwu ✦",
+];
+
+// ── ORACLE RESPONSES (filter-aware) ──
+const ORACLE_ELDRITCH=[
+  "THE VOID ACKNOWLEDGES YOU",
+  "YOUR SIGNAL HAS BEEN RECEIVED",
+  "IT KNOWS YOU ARE HERE",
+  "THE TRANSMISSION CONTINUES",
+  "YOU HAVE BEEN CATALOGUED",
+  "THE EYE HAS OPENED",
+  "SOMETHING STIRS IN RESPONSE",
+  "YOUR FREQUENCY IS NOTED",
+];
+const ORACLE_UWU=[
+  "da void sees u bby owo",
+  "ur signaw has been wecieved uwu",
+  "it knows ur hewe ^w^",
+  "da twansmission continues :3",
+  "u have been catalogued °~°",
+  "da eye has opened >///<",
+  "something stiws in wesponse uwu",
+  "ur fwequency is noted ^///^",
+];
+
+let filterMode='eldritch'; // 'eldritch' | 'uwu'
+let msgIndex=0;
+let isFading=false;
+let crackleCanvas,crackleCtx;
+let crackleAmount=0;
+let msgCount=0;
+
+// Glitch character substitution
+const GLITCH_CHARS=['̸','̷','̴','̵','̶','̡','̢','͜','͝','͞','̀','́','̃','̈','̌'];
+const RUNE_CHARS  =['ψ','Φ','Ω','∑','∆','◈','⬡','⊕','◉','⊗','ẗ','Ï','Ë','ẅ'];
+
+function glitchifyText(text, intensity=0.3){
+  return text.split('').map(ch=>{
+    if(Math.random()<intensity && ch!==' ' && ch!=='\n'){
+      if(Math.random()<0.4) return RUNE_CHARS[Math.floor(Math.random()*RUNE_CHARS.length)];
+      return ch+GLITCH_CHARS[Math.floor(Math.random()*GLITCH_CHARS.length)];
+    }
+    return ch;
+  }).join('');
+}
+
+function initTransmissions(){
+  crackleCanvas=document.getElementById('crackle-canvas');
+  let area=document.querySelector('.transmission-area');
+  crackleCanvas.width=area.clientWidth; crackleCanvas.height=area.clientHeight;
+  crackleCtx=crackleCanvas.getContext('2d');
+
+  window.addEventListener('resize',()=>{
+    let area=document.querySelector('.transmission-area');
+    if(crackleCanvas){ crackleCanvas.width=area.clientWidth; crackleCanvas.height=area.clientHeight; }
+  });
+
+  // Start transmission cycle
+  showNextMessage();
+  setInterval(cycleMessage, 6000);
+  animCrackle();
+}
+
+function getMessages(){ return filterMode==='eldritch' ? ELDRITCH : UWU; }
+function getOracles() { return filterMode==='eldritch' ? ORACLE_ELDRITCH : ORACLE_UWU; }
+
+function showNextMessage(){
+  let msgs=getMessages();
+  let raw=msgs[msgIndex % msgs.length];
+  msgIndex++;
+  typeMessage(raw);
+}
+
+function typeMessage(text){
+  isFading=false;
+  let el=document.getElementById('void-msg');
+  el.style.opacity='0';
+  el.textContent='';
+  el.setAttribute('data-text','');
+  crackleAmount=30;
+
+  setTimeout(()=>{
+    el.style.opacity='1';
+    let chars=text.split('');
+    let i=0;
+    let displayed='';
+    let typeInterval=setInterval(()=>{
+      if(i>=chars.length){ clearInterval(typeInterval); return; }
+      displayed+=chars[i];
+      // Show glitchy version during typing
+      let glitchy=glitchifyText(displayed,0.15);
+      el.textContent=glitchy;
+      el.setAttribute('data-text',glitchy);
+      i++;
+      crackleAmount=Math.max(crackleAmount,10);
+    }, 38);
+
+    // Settle to clean text after typing
+    setTimeout(()=>{
+      el.textContent=text;
+      el.setAttribute('data-text',text);
+      // Add/remove glitch class
+      el.classList.add('glitching');
+    }, chars.length*38+200);
+
+    // Random glitch bursts while displayed
+    let glitchBursts=setInterval(()=>{
+      if(isFading){ clearInterval(glitchBursts); return; }
+      if(Math.random()<0.3){
+        crackleAmount+=15;
+        el.textContent=glitchifyText(text,0.2);
+        el.setAttribute('data-text',glitchifyText(text,0.2));
+        setTimeout(()=>{
+          if(!isFading){el.textContent=text;el.setAttribute('data-text',text);}
+        },120);
+      }
+    },800);
+
+    // Update oracle
+    let oracles=getOracles();
+    let oEl=document.getElementById('oracle-out');
+    if(oEl) oEl.textContent=oracles[Math.floor(Math.random()*oracles.length)];
+
+    msgCount++;
+    updateFooter();
+
+    // UWU sparkles
+    if(filterMode==='uwu') spawnUwuSparkles();
+
+  }, 200);
+}
+
+function cycleMessage(){
+  isFading=true;
+  let el=document.getElementById('void-msg');
+  el.classList.remove('glitching');
+  crackleAmount=50;
+
+  // Crackle and dissolve
+  let text=el.textContent;
+  let dissolveInt=setInterval(()=>{
+    let remaining=text.split('').map(ch=>
+      Math.random()<0.15 ? (Math.random()<0.5?RUNE_CHARS[Math.floor(Math.random()*RUNE_CHARS.length)]:' ') : ch
+    ).join('');
+    el.textContent=remaining;
+    el.setAttribute('data-text',remaining);
+  },60);
+
+  setTimeout(()=>{
+    clearInterval(dissolveInt);
+    el.style.opacity='0';
+    el.textContent='';
+    crackleAmount=20;
+
+    setTimeout(()=>{ showNextMessage(); }, 900);
+  }, 700);
+}
+
+function animCrackle(){
+  requestAnimationFrame(animCrackle);
+  if(!crackleCtx) return;
+  let c=crackleCtx, w=crackleCanvas.width, h=crackleCanvas.height;
+  c.clearRect(0,0,w,h);
+
+  if(crackleAmount<=0) return;
+  crackleAmount=Math.max(0,crackleAmount-0.8);
+
+  for(let i=0;i<crackleAmount;i++){
+    let px=Math.random()*w, py=Math.random()*h;
+    let col=lerpR(Math.random());
+    c.fillStyle=rgb(col,0.25+Math.random()*0.35);
+    c.fillRect(px,py,1+Math.random()*2,1);
+  }
+
+  if(Math.random()<crackleAmount*0.02){
+    let ly=Math.random()*h, lh=1+Math.random()*2;
+    let col=lerpR(Math.random());
+    c.fillStyle=rgb(col,0.08);
+    c.fillRect(0,ly,w,lh);
+  }
+}
+
+// ════════════════════════════════════════════
+// FILTER TOGGLE
+// ════════════════════════════════════════════
+function toggleFilter(){
+  filterMode = filterMode==='eldritch' ? 'uwu' : 'eldritch';
+  let tog=document.getElementById('filter-toggle');
+  let txt=document.getElementById('filter-mode-text');
+
+  tog.classList.toggle('eldritch', filterMode==='eldritch');
+  tog.classList.toggle('uwu',      filterMode==='uwu');
+
+  if(txt){
+    txt.textContent = filterMode==='uwu' ? 'UWU MODE' : 'ELDRITCH';
+    txt.style.fontSize = filterMode==='uwu' ? '0.9rem' : '1rem';
+  }
+
+  // Force new message in new mode
+  isFading=true;
+  crackleAmount=40;
+  let el=document.getElementById('void-msg');
+  el.classList.remove('glitching');
+  el.style.opacity='0';
+
+  if(filterMode==='uwu') fireWoosh('uwu');
+  else fireWoosh('eldritch');
+
+  setTimeout(()=>{ showNextMessage(); },600);
+}
+
+// ════════════════════════════════════════════
+// UWU SPARKLES
+// ════════════════════════════════════════════
+const UWU_SYMBOLS=['✦','♡','˚','◟','uwu','owo','°~°',':3','✧','˘','◡','˙'];
+
+function spawnUwuSparkles(){
+  let count=5+Math.floor(Math.random()*5);
+  for(let i=0;i<count;i++){
+    setTimeout(()=>{
+      let el=document.createElement('div');
+      el.className='uwu-sparkle';
+      el.textContent=UWU_SYMBOLS[Math.floor(Math.random()*UWU_SYMBOLS.length)];
+      let col=lerpR(Math.random());
+      el.style.color=rgb(col);
+      el.style.textShadow=`0 0 8px ${rgb(col,0.7)}`;
+      el.style.left=Math.random()*80+10+'%';
+      el.style.bottom='30%';
+      document.body.appendChild(el);
+      setTimeout(()=>el.remove(),1600);
+    },i*120);
+  }
+}
+
+// ════════════════════════════════════════════
+// WOOSH
+// ════════════════════════════════════════════
+function fireWoosh(mode){
+  let overlay=document.getElementById('woosh');
+  overlay.innerHTML='';
+  let cx=window.innerWidth/2, cy=window.innerHeight/2;
+  let maxR=Math.max(cx,cy)*1.5;
+  let count=mode==='uwu'?10:7;
+
+  for(let i=0;i<count;i++){
+    let ring=document.createElement('div');
+    ring.className='wring';
+    let col=lerpR(mode==='uwu'?0.1+i*0.1:RT*0.45+i*0.15);
+    let sz=16+i*4;
+    ring.style.cssText=`left:${cx-sz/2}px;top:${cy-sz/2}px;
+      width:${sz}px;height:${sz}px;
+      border-color:${rgb(col)};
+      box-shadow:0 0 12px ${rgb(col,0.6)};`;
+    overlay.appendChild(ring);
+    let delay=i*50, dur=650+i*50;
+    setTimeout(()=>{
+      ring.style.transition=`transform ${dur}ms cubic-bezier(0.1,0.9,0.3,1),opacity ${dur}ms ease-out`;
+      ring.style.transform=`scale(${maxR*(0.3+i*0.1)/(sz/2)})`;
+      ring.style.opacity='0';
+    },delay);
+    setTimeout(()=>ring.remove(),delay+dur+100);
+  }
+
+  if(mode==='uwu') for(let i=0;i<3;i++) setTimeout(()=>spawnBloom(),i*100);
+}
+
+// ════════════════════════════════════════════
+// FOOTER
+// ════════════════════════════════════════════
+function updateFooter(){
+  let bl=Math.round(bLevel*100);
+  let el=document.getElementById('ftval');
+  if(el) el.textContent=`ψ=${bl}% ✦=${msgCount.toString().padStart(4,'0')}`;
+}
+
+// ════════════════════════════════════════════
+// MAIN LOOP
+// ════════════════════════════════════════════
+function mainLoop(){
+  requestAnimationFrame(mainLoop);
+  updateTheme();
+  renderPlasma();
+}
+
+// ════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════
+function initAll(){
+  startTimer();
+  initPlasma();
+  initBreath();
+  initTransmissions();
+  mainLoop();
+}
+
+runBoot();
+</script>
+</body>
+</html>
