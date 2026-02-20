@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>VOID ORACLE</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap');
+
+* { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+html,body {
+  width:100%; height:100%; background:#000;
+  overflow:hidden; touch-action:none;
+  font-family:'Share Tech Mono',monospace;
+}
+body::before {
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:3000;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.1) 2px,rgba(0,0,0,0.1) 4px);
+}
+body::after {
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:2999;
+  background:radial-gradient(ellipse at center,transparent 42%,rgba(0,0,0,0.93) 100%);
+}
+#plasma { position:fixed; inset:0; z-index:0; opacity:0.13; }
+
+/* ── BOOT ── */
+#boot {
+  position:fixed; inset:0; background:#000; z-index:4000;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:2rem; transition:opacity 0.7s;
+}
+#boot.hidden { opacity:0; pointer-events:none; }
+.btext { font-family:'VT323',monospace; font-size:1.05rem; line-height:1.9; width:100%; max-width:360px; }
+.bline { opacity:0; animation:brev 0.05s forwards; }
+@keyframes brev { to{opacity:1;} }
+#bootbtn {
+  margin-top:2rem; padding:0.9rem 2.2rem; background:transparent;
+  font-family:'VT323',monospace; font-size:1.7rem; letter-spacing:4px;
+  cursor:pointer; opacity:0; animation:brev 0.3s 3.2s forwards; transition:all 0.2s;
+}
+
+/* ── APP ── */
+#app {
+  position:fixed; inset:0; z-index:10;
+  display:flex; flex-direction:column;
+  opacity:0; transition:opacity 0.9s;
+  background:rgba(0,0,5,0.76);
+}
+#app.visible { opacity:1; }
+
+/* ── HEADER ── */
+.hdr {
+  flex-shrink:0; padding:0.5rem 0.9rem; border-bottom:1px solid;
+  display:flex; justify-content:space-between; align-items:center;
+  background:rgba(0,0,0,0.55);
+}
+.htitle { font-family:'VT323',monospace; font-size:1.2rem; letter-spacing:3px; }
+.hright { font-size:0.55rem; text-align:right; line-height:1.8; opacity:0.65; }
+.sdot {
+  display:inline-block; width:6px; height:6px; border-radius:50%;
+  margin-right:3px; vertical-align:middle; animation:sdp 1.8s infinite;
+}
+@keyframes sdp { 0%,100%{opacity:1;} 50%{opacity:0.1;} }
+
+/* ── MODULES ── */
+.modules { flex:1; display:flex; flex-direction:column; overflow:hidden; min-height:0; }
+.mod {
+  position:relative; border-bottom:1px solid;
+  background:rgba(0,0,4,0.45); overflow:hidden;
+}
+.mod:last-child { border-bottom:none; }
+.mlbl { position:absolute; top:0.35rem; left:0.65rem; font-size:0.55rem; letter-spacing:2px; z-index:10; opacity:0.5; pointer-events:none; }
+.mid  { position:absolute; top:0.35rem; right:0.65rem; font-size:0.55rem; z-index:10; opacity:0.3; pointer-events:none; }
+.mod::before,.mod::after { content:''; position:absolute; width:10px; height:10px; border-style:solid; opacity:0.3; z-index:5; pointer-events:none; }
+.mod::before { top:3px; left:3px; border-width:1px 0 0 1px; }
+.mod::after  { bottom:3px; right:3px; border-width:0 1px 1px 0; }
+
+/* ── MOD 1: ORACLE DRAW ── */
+#omod { flex:1.5; cursor:grab; user-select:none; }
+#omod:active { cursor:grabbing; }
+
+#card-stage {
+  position:relative; width:100%; height:100%;
+  display:flex; align-items:center; justify-content:center;
+  overflow:hidden;
+}
+
+/* Background particle canvas */
+#bg-canvas { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:1; }
+
+/* Card */
+#card {
+  position:relative; z-index:2;
+  width:min(160px, 42vw);
+  aspect-ratio:2/3;
+  border:1px solid;
+  border-radius:4px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.6rem;
+  background:rgba(0,0,0,0.7);
+  transition:box-shadow 0.3s;
+  transform-origin:center center;
+  will-change:transform;
+  touch-action:none;
+}
+
+.card-sym {
+  font-family:'VT323',monospace; font-size:2.5rem;
+  transition:all 0.3s;
+  line-height:1;
+}
+.card-sub {
+  font-size:0.52rem; letter-spacing:2px; opacity:0.35;
+  text-align:center; padding:0 0.5rem;
+}
+.card-hint {
+  font-size:0.5rem; letter-spacing:1.5px; opacity:0.2;
+  text-align:center; padding:0 0.4rem;
+  position:absolute; bottom:0.6rem;
+  transition:opacity 0.4s;
+}
+
+/* Drag trail canvas */
+#trail-canvas { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:3; }
+
+/* Pull meter — vertical strip on right */
+#pull-strip {
+  position:absolute; right:0.7rem; top:50%; transform:translateY(-50%);
+  width:4px; height:60%; z-index:4;
+  background:rgba(255,255,255,0.04); border-radius:2px; overflow:hidden;
+}
+#pull-fill {
+  position:absolute; bottom:0; left:0; right:0; height:0%;
+  border-radius:2px; transition:none;
+}
+
+/* ── MOD 2: ORACLE READING ── */
+#rmod { flex:1.2; display:flex; flex-direction:column; }
+
+.reading-body {
+  flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:1.1rem 1.1rem 0.4rem; position:relative; overflow:hidden; gap:0.4rem;
+}
+
+#crackle-canvas { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:1; opacity:0.4; }
+
+.oracle-emoji {
+  font-size:1.4rem; z-index:2; opacity:0;
+  transition:opacity 0.4s;
+  letter-spacing:0.2em;
+  min-height:1.8rem;
+}
+.oracle-emoji.show { opacity:1; }
+
+.oracle-text {
+  font-family:'VT323',monospace; font-size:1.1rem;
+  letter-spacing:0.1em; line-height:1.5; text-align:center;
+  white-space:pre-line; z-index:2; position:relative;
+  opacity:0; transition:opacity 0.5s;
+}
+.oracle-text.show { opacity:1; }
+.oracle-text::before,.oracle-text::after {
+  content:attr(data-text); position:absolute; inset:0;
+  text-align:center; white-space:pre-line; pointer-events:none;
+}
+.oracle-text::before { color:#ff00ff; opacity:0; animation:ga 2.8s infinite; clip-path:polygon(0 10%,100% 10%,100% 38%,0 38%); }
+.oracle-text::after  { color:#00ffff; opacity:0; animation:gb 3.3s infinite; clip-path:polygon(0 60%,100% 60%,100% 86%,0 86%); }
+.oracle-text.glitching::before { opacity:0.5; }
+.oracle-text.glitching::after  { opacity:0.4; }
+@keyframes ga { 0%,90%,100%{transform:none;} 91%{transform:translate(-3px,0) skewX(-2deg);} 94%{transform:translate(2px,0);} }
+@keyframes gb { 0%,86%,100%{transform:none;} 87%{transform:translate(4px,0) skewX(2deg);} 91%{transform:translate(-2px,0);} }
+
+.oracle-sub {
+  font-size:0.6rem; letter-spacing:0.15em; opacity:0;
+  text-align:center; z-index:2; transition:opacity 0.5s;
+  font-family:'VT323',monospace; font-size:0.9rem;
+}
+.oracle-sub.show { opacity:0.65; }
+
+.oracle-idle {
+  font-size:0.58rem; letter-spacing:2.5px; opacity:0.18;
+  text-align:center; line-height:2; z-index:2;
+}
+
+/* ── CTRL BAR ── */
+.ctrl-bar {
+  flex-shrink:0; display:flex; align-items:center;
+  padding:0.4rem 0.8rem; gap:0.6rem; border-top:1px solid; height:46px;
+}
+.ftog-wrap { display:flex; align-items:center; gap:0.4rem; flex-shrink:0; }
+.ftog-lbl  { font-size:0.48rem; letter-spacing:0.15em; opacity:0.4; }
+.ftog {
+  position:relative; width:64px; height:24px; border:1px solid; border-radius:12px;
+  cursor:pointer; background:rgba(0,0,0,0.4); flex-shrink:0; overflow:hidden;
+}
+.fthumb {
+  position:absolute; top:3px; left:3px; width:18px; height:18px; border-radius:50%;
+  transition:transform 0.3s cubic-bezier(0.4,0,0.2,1), background 0.3s;
+}
+.ftog.uwu .fthumb { transform:translateX(40px); }
+.fmode { font-family:'VT323',monospace; font-size:1rem; letter-spacing:1px; white-space:nowrap; flex-shrink:0; min-width:72px; transition:all 0.3s; }
+#state-lbl { flex:1; font-size:0.48rem; letter-spacing:0.1em; opacity:0.38; text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+/* ── FOOTER ── */
+.ftr {
+  flex-shrink:0; padding:0.25rem 0.9rem; border-top:1px solid;
+  display:flex; justify-content:space-between; font-size:0.47rem; letter-spacing:0.1em; opacity:0.35;
+}
+
+/* ── WOOSH ── */
+#woosh { position:fixed; inset:0; pointer-events:none; z-index:2500; }
+.wring { position:absolute; border-radius:50%; border:2px solid; transform:scale(0); opacity:0; }
+
+/* ── UWU SPARKLES ── */
+.uwusp { position:fixed; pointer-events:none; z-index:2490; animation:spf 1.6s ease-out forwards; }
+@keyframes spf { 0%{opacity:1;transform:translateY(0) scale(1) rotate(0deg);} 100%{opacity:0;transform:translateY(-100px) scale(0.1) rotate(180deg);} }
+
+/* Card flip animation */
+@keyframes cardReveal {
+  0%   { transform:rotateY(90deg) scale(0.8); opacity:0; }
+  60%  { transform:rotateY(-8deg) scale(1.04); opacity:1; }
+  80%  { transform:rotateY(4deg) scale(0.99); }
+  100% { transform:rotateY(0deg) scale(1); opacity:1; }
+}
+.card-flipping { animation:cardReveal 0.6s cubic-bezier(0.2,0.8,0.3,1) forwards; }
+
+@keyframes cardShake {
+  0%,100%{transform:translate(0,0) rotate(0deg);}
+  20%{transform:translate(-4px,2px) rotate(-1deg);}
+  40%{transform:translate(4px,-2px) rotate(1deg);}
+  60%{transform:translate(-3px,1px) rotate(-0.5deg);}
+  80%{transform:translate(3px,-1px) rotate(0.5deg);}
+}
+</style>
+</head>
+<body>
+
+<canvas id="plasma"></canvas>
+<div id="woosh"></div>
+
+<!-- BOOT -->
+<div id="boot">
+  <div class="btext" id="btext"></div>
+  <button id="bootbtn" onclick="activate()">[ CONSULT THE ORACLE ]</button>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="hdr" id="hdr">
+    <div class="htitle" id="htitle">VOID ORACLE</div>
+    <div class="hright"><span class="sdot" id="sdot"></span>LISTENING<br><span id="stime">00:00:00</span></div>
+  </div>
+
+  <div class="modules">
+
+    <!-- MOD 1: CARD DRAW -->
+    <div class="mod" id="omod">
+      <div class="mlbl" id="lbl1">// ORACLE DRAW</div>
+      <div class="mid">MOD-01</div>
+      <div id="card-stage">
+        <canvas id="bg-canvas"></canvas>
+
+        <div id="card">
+          <div class="card-sym" id="card-sym">⬡</div>
+          <div class="card-sub" id="card-sub">VOID ORACLE</div>
+          <div class="card-hint" id="card-hint">SWIPE UP TO DRAW</div>
+        </div>
+
+        <canvas id="trail-canvas"></canvas>
+        <div id="pull-strip"><div id="pull-fill"></div></div>
+      </div>
+    </div>
+
+    <!-- MOD 2: READING -->
+    <div class="mod" id="rmod">
+      <div class="mlbl" id="lbl2">// ORACLE READING</div>
+      <div class="mid">MOD-02</div>
+      <div class="reading-body">
+        <canvas id="crackle-canvas"></canvas>
+        <div class="oracle-idle" id="oracle-idle">— draw a card to receive prophecy —</div>
+        <div class="oracle-emoji" id="oracle-emoji"></div>
+        <div class="oracle-text"  id="oracle-text"  data-text=""></div>
+        <div class="oracle-sub"   id="oracle-sub"></div>
+      </div>
+      <div class="ctrl-bar" id="ctrlbar">
+        <div class="ftog-wrap">
+          <span class="ftog-lbl">MODE</span>
+          <div class="ftog eldritch" id="ftog" onclick="toggleFilter()"><div class="fthumb" id="fthumb"></div></div>
+          <span class="fmode" id="fmode">ELDRITCH</span>
+        </div>
+        <div id="state-lbl">— awaiting —</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="ftr" id="ftr">
+    <span>⬡ VOID ORACLE ⬡</span>
+    <span id="ftval">drawn=0000 consults=0000</span>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════
+// RAZOR
+// ═══════════════════════════════════
+const RAZOR=[[0,255,65],[0,210,255],[170,0,255],[255,0,190],[255,170,0],[0,255,65]];
+let RT=0, RC=[0,255,65], RS=[0,180,255], RTH=[140,0,255];
+function lerpR(phase){
+  let t=((phase%1)+1)%1,n=RAZOR.length-1,i=Math.floor(t*n),f=t*n-i;
+  let a=RAZOR[i],b=RAZOR[Math.min(i+1,n)];
+  return [Math.round(a[0]+(b[0]-a[0])*f),Math.round(a[1]+(b[1]-a[1])*f),Math.round(a[2]+(b[2]-a[2])*f)];
+}
+function rgb(c,a){ return a!=null?`rgba(${c[0]},${c[1]},${c[2]},${a})`:`rgb(${c[0]},${c[1]},${c[2]})`; }
+function S(id){ return document.getElementById(id); }
+function El(id,fn){ let e=S(id);if(e)fn(e); }
+
+let blooms=[];
+function bloom(x,y,col){
+  blooms.push({x:x??Math.random()*innerWidth,y:y??Math.random()*innerHeight,r:0,maxR:70+Math.random()*160,color:col??lerpR(Math.random()),alpha:0.1+Math.random()*0.18});
+}
+
+function updateTheme(){
+  RT+=0.016; RC=lerpR(RT*0.4); RS=lerpR(RT*0.4+0.35); RTH=lerpR(RT*0.4+0.7);
+  if(Math.random()<0.016) bloom();
+  let ms=rgb(RC),md=rgb(RC,0.17),isU=filterMode==='uwu',fc=isU?lerpR(0.15):RTH;
+  El('htitle',e=>{e.style.color=ms;e.style.textShadow=`0 0 14px ${rgb(RC,0.28)}`;});
+  El('hdr',e=>e.style.borderColor=md);
+  El('sdot',e=>{e.style.background=ms;e.style.boxShadow=`0 0 8px ${ms}`;});
+  El('ftr',e=>{e.style.borderColor=md;e.style.color=rgb(RC,0.35);});
+  El('ctrlbar',e=>e.style.borderColor=md);
+  ['omod','rmod'].forEach((id,i)=>{let c=lerpR(RT*0.4+i*0.4);El(id,e=>e.style.borderColor=rgb(c,0.14));});
+  document.querySelectorAll('.mlbl').forEach((e,i)=>e.style.color=rgb(lerpR(RT*0.4+i*0.4),0.55));
+  // card
+  El('card',e=>{
+    let c=lerpR(RT*0.4+0.2);
+    e.style.borderColor=rgb(c,0.45);
+    e.style.boxShadow=`0 0 ${12+pullLevel*20}px ${rgb(c,0.2+pullLevel*0.3)}, inset 0 0 ${8+pullLevel*12}px ${rgb(c,0.06)}`;
+  });
+  El('card-sym',e=>{ let c=lerpR(RT*0.4); e.style.color=rgb(c); e.style.textShadow=`0 0 12px ${rgb(c,0.7)}`; });
+  El('card-sub',e=>e.style.color=rgb(RC,0.3));
+  El('card-hint',e=>e.style.color=rgb(RC,0.2));
+  // pull fill
+  El('pull-fill',e=>{
+    let c=lerpR(RT*0.4+pullLevel*0.3);
+    e.style.height=(pullLevel*100)+'%';
+    e.style.background=rgb(c);
+    e.style.boxShadow=`0 0 ${6+pullLevel*10}px ${rgb(c)}`;
+  });
+  // filter
+  El('ftog',e=>{e.style.borderColor=rgb(fc,0.5);e.classList.toggle('uwu',isU);e.classList.toggle('eldritch',!isU);});
+  El('fthumb',e=>{e.style.background=rgb(fc);e.style.boxShadow=`0 0 6px ${rgb(fc)}`;});
+  El('fmode',e=>{e.textContent=isU?'UWU MODE':'ELDRITCH';e.style.color=rgb(fc);e.style.textShadow=`0 0 8px ${rgb(fc,0.5)}`;});
+  El('state-lbl',e=>e.style.color=rgb(RC,0.38));
+  // reading text color
+  El('oracle-text',e=>{let c=isU?lerpR(RT*0.4+0.15):RC;e.style.color=rgb(c);e.style.textShadow=`0 0 10px ${rgb(c,0.5)},0 0 22px ${rgb(c,0.15)}`;});
+  El('oracle-emoji',e=>e.style.color=rgb(isU?lerpR(0.12):RC));
+  El('oracle-sub',e=>e.style.color=rgb(RS,0.6));
+  El('bootbtn',e=>{e.style.borderColor=ms;e.style.color=ms;});
+}
+
+// ═══════════════════════════════════
+// PLASMA
+// ═══════════════════════════════════
+let pCanvas,pCtx,pOff,pOffCtx,pT=0;
+function initPlasma(){
+  pCanvas=S('plasma'); pCanvas.width=innerWidth; pCanvas.height=innerHeight;
+  pCtx=pCanvas.getContext('2d');
+  pOff=document.createElement('canvas');
+  pOff.width=Math.ceil(innerWidth/7); pOff.height=Math.ceil(innerHeight/7);
+  pOffCtx=pOff.getContext('2d');
+}
+function renderPlasma(){
+  pT+=0.01;
+  let w=pOff.width,h=pOff.height,img=pOffCtx.createImageData(w,h),d=img.data;
+  for(let py=0;py<h;py++) for(let px=0;px<w;px++){
+    let v=Math.sin(px*0.27+pT)+Math.sin(py*0.21+pT*1.1)+Math.sin((px+py)*0.13+pT*0.9)+Math.sin(Math.sqrt(px*px+py*py)*0.17+pT*1.3);
+    let c=lerpR((v+4)/8+pT*0.07),idx=(py*w+px)*4;
+    d[idx]=c[0];d[idx+1]=c[1];d[idx+2]=c[2];d[idx+3]=255;
+  }
+  pOffCtx.putImageData(img,0,0);
+  pCtx.clearRect(0,0,pCanvas.width,pCanvas.height);
+  pCtx.imageSmoothingEnabled=true;
+  pCtx.drawImage(pOff,0,0,pCanvas.width,pCanvas.height);
+  blooms=blooms.filter(b=>b.r<b.maxR);
+  blooms.forEach(b=>{
+    b.r+=3;
+    let g=pCtx.createRadialGradient(b.x,b.y,0,b.x,b.y,b.r);
+    g.addColorStop(0,rgb(b.color,b.alpha*(1-b.r/b.maxR)));g.addColorStop(1,'transparent');
+    pCtx.beginPath();pCtx.arc(b.x,b.y,b.r,0,Math.PI*2);pCtx.fillStyle=g;pCtx.fill();
+  });
+}
+
+// ═══════════════════════════════════
+// BOOT
+// ═══════════════════════════════════
+const BOOTLINES=[
+  "> VOID ORACLE v∅.3",
+  "> Prophecy matrix......... LOADED",
+  "> UWU translation......... ONLINE",
+  "> Card draw engine........ ARMED",
+  "> Emoji reservoir......... ✦♡owo",
+  "> NOTE: the oracle speaks truth.",
+  ">       whether you like it",
+  ">       or not. uwu.",
+  "> Consult.",
+];
+function runBoot(){
+  let el=S('btext'),delay=0;
+  BOOTLINES.forEach((line,i)=>{
+    delay+=i===0?300:145;
+    setTimeout(()=>{
+      let d=document.createElement('div');d.className='bline';
+      if(i>=5&&i<=7) d.style.color='rgba(255,160,0,0.9)';
+      d.textContent=line;el.appendChild(d);
+    },delay);
+  });
+}
+function activate(){
+  S('boot').classList.add('hidden');
+  setTimeout(()=>{S('boot').style.display='none';S('app').classList.add('visible');initAll();},700);
+}
+
+// ═══════════════════════════════════
+// TIMER
+// ═══════════════════════════════════
+let sessStart;
+function startTimer(){
+  sessStart=Date.now();
+  setInterval(()=>{
+    let s=Math.floor((Date.now()-sessStart)/1000);
+    El('stime',e=>e.textContent=[Math.floor(s/3600),Math.floor((s%3600)/60),s%60].map(n=>String(n).padStart(2,'0')).join(':'));
+  },1000);
+}
+
+// ═══════════════════════════════════
+// ORACLE DATA
+// ═══════════════════════════════════
+
+// Rich UWU emoji clusters — each prophecy gets one
+const UWU_CLUSTERS = [
+  '(｡◕‿◕｡) ✦',
+  'owo ♡ uwu',
+  '°◡° ˚✧˚',
+  '≧◡≦ ✿',
+  '(っ◔◡◔)っ ♡',
+  '˙˘˙ ꒰ ✦ ꒱',
+  '(◕‿◕) °~°',
+  '>ω< ✧・ﾟ',
+  '꒰˘̩̩̩⌣˘̩̩̩꒱ ♡',
+  '٩(◕‿◕｡)۶',
+  '(≧▽≦) ✦✦',
+  '˶ᵔ ᵕ ᵔ˶ ♡',
+  '(´｡• ω •｡`) ✿',
+  '⊂(◉‿◉)つ uwu',
+  '✧(≗ω≗✧) ˚♡',
+  '(灬º‿º灬) ♡',
+  '꒷꒦꒷꒦ ˙˘˙',
+  '(ᵕ—ᴗ—) ✦',
+  '✩°｡⋆⸜(ᵕ᷄ᗜᵕ᷅)',
+  '(˘ω˘)zzZ ♡',
+];
+
+// Eldritch symbols per card
+const ELDRITCH_SYMS = ['ψ','Φ','Ω','∑','∆','◈','⊕','⊗','◉','⬡','⟁','☽','☿','♄','⍟','⎔'];
+
+// ── ELDRITCH PROPHECIES ──
+const ELDRITCH_CARDS = [
+  { title:"THE EYE THAT DOES NOT SLEEP",
+    text:"It has always known your name.\nYou only now begin to suspect\nthat it knows everything else too.",
+    sub:"do not look up" },
+  { title:"THE FREQUENCY OF LOSS",
+    text:"What left you did not disappear.\nIt transmits still, from somewhere\nyou cannot tune to anymore.",
+    sub:"some signals travel backward" },
+  { title:"THE ARCHITECTURE OF FORGETTING",
+    text:"The walls you built to keep it out\nhave become the shape of the thing\nyou were trying to forget.",
+    sub:"containment is a form of contact" },
+  { title:"THE WEIGHT OF AN OLD NAME",
+    text:"Something spoken before language\nis looking for a mouth.\nYours will do.",
+    sub:"do not repeat what you hear tonight" },
+  { title:"THE MEMBRANE BETWEEN",
+    text:"Thinner than you were told.\nYou have been pressing against it\nwith your wanting, and it shows.",
+    sub:"pressure is a form of prayer" },
+  { title:"THE THING THAT COUNTS",
+    text:"Every night while you sleep\nit marks another number.\nYou are not running out of time.\nTime is running out of you.",
+    sub:"the tally is almost complete" },
+  { title:"THE GATE THAT OPENS INWARD",
+    text:"You have been searching for a door.\nThere is no door.\nThere is only the sudden awareness\nthat you are already inside.",
+    sub:"you were always already here" },
+  { title:"THE SIGNAL FROM BELOW",
+    text:"Something under everything\nhas learned to use your frequencies.\nThe static you hear is not static.",
+    sub:"listen with your bones, not your ears" },
+  { title:"THE WOUND THAT TEACHES",
+    text:"It will not close.\nThis is not failure — this is its function.\nThe opening is where the knowing enters.",
+    sub:"porousness is a form of power" },
+  { title:"THE NAMES OF THE UNNAMED",
+    text:"There are things that exist\nprecisely because they have not yet\nbeen given a name.\nYou are close to naming one.",
+    sub:"consider your next word carefully" },
+  { title:"THE THOUSAND SMALL RETURNS",
+    text:"What you dismissed\nas coincidence\nhas been practicing patience\nsince before you were born.",
+    sub:"patterns do not require your belief" },
+  { title:"THE SPACE BETWEEN HEARTBEATS",
+    text:"Something lives in the pause.\nIt has been living there for years,\nwatching your rhythm, learning your tempo.",
+    sub:"syncopation is its native language" },
+  { title:"THE DEEP CARTOGRAPHY",
+    text:"The map you carry\ndoes not show the territory.\nThe territory has already\nmapped you.",
+    sub:"you are being charted" },
+  { title:"THE RECURSIVE DREAM",
+    text:"You have dreamed this dream before.\nNot in sleep — in the waking\nthat you mistake for waking.",
+    sub:"the real iteration is unclear" },
+  { title:"THE LAST GEOMETRY",
+    text:"At the end of all mathematics\nthere is one equation\nthat resolves to an expression\nfor which there are no symbols.",
+    sub:"and yet — it is satisfied" },
+  { title:"THE HUNGER WITHOUT MOUTH",
+    text:"It does not want to consume you.\nIt wants to understand you.\nThe distinction is becoming\nless clear to it over time.",
+    sub:"curiosity at cosmic scale is indistinguishable from hunger" },
+];
+
+// ── UWU PROPHECIES ── (same cards, different universe)
+const UWU_CARDS = [
+  { title:"DA EYE DAT DOES NOT SWEEP",
+    text:"it has awways known ur name bby\nu only now begin to suspect\nthat it knows evewything else too owo",
+    sub:"do not wook up >///<" },
+  { title:"DA FWEQUENCY OF WOSS",
+    text:"what weft u did not disappear\nit twansmits still from somewhere\nu cannot tune to anymoew uwu",
+    sub:"some signaws travel backwawd °~°" },
+  { title:"DA AWCHITECTUWE OF FOWGETTING",
+    text:"da walls u built to keep it out\nhave become da shape of da thing\nu were twying to forget (≧▽≦)",
+    sub:"containment is a form of contact bby" },
+  { title:"DA WEIGHT OF AN OLD NAME",
+    text:"something spoken before language\nis wooking for a mouth owo\nurs will do bby ✦",
+    sub:"do not repeat what u hear tonight >///<" },
+  { title:"DA MEMBWANE BETWEEN",
+    text:"thinnew than u were told uwu\nu have been pwessing against it\nwith ur wanting and it shows ♡",
+    sub:"pwessure is a form of prayer °~°" },
+  { title:"DA THING DAT COUNTS",
+    text:"every night while u sweep bby\nit marks another numbew\nu are not running out of time\ntime is running out of u (｡◕‿◕｡)",
+    sub:"da tawwy is awmost compwete uwu" },
+  { title:"DA GATE DAT OPENS INWAWD",
+    text:"u have been searching for a door\nthere is no door owo\nthere is onwy da sudden awareness\nthat u are awready inside ✦",
+    sub:"u were awways awready hewe bby" },
+  { title:"DA SIGNAW FROM BEWOW",
+    text:"something under everything\nhas learned to use ur fwequencies owo\nda static u hear is not static uwu",
+    sub:"wisten with ur bones not ur ears ˚♡" },
+  { title:"DA WOUND DAT TEACHES",
+    text:"it will not close bby uwu\nthis is not failure — this is its function\nda opening is whewe da knowing enters ✿",
+    sub:"porousness is a form of power °~°" },
+  { title:"DA NAMES OF DA UNNAMED",
+    text:"there are things dat exist\npwecisely because they have not yet\nbeen given a name owo\nu are close to naming one ✦",
+    sub:"consider ur next word cawefuwwy bby" },
+  { title:"DA THOUSAND SMOL WETUWNS",
+    text:"what u dismissed\nas coincidence uwu\nhas been pwacticing patience\nsince before u were born ˙˘˙",
+    sub:"patterns do not wequire ur bewief ♡" },
+  { title:"DA SPACE BETWEEN HEARTBEATS",
+    text:"something wives in da pause bby\nit has been wiving there for years\nwatching ur rhythm wearning ur tempo owo",
+    sub:"syncopation is its native wanguage °~°" },
+  { title:"DA DEEP CAWTOGWAPHY",
+    text:"da map u carry\ndoes not show da territory uwu\nda territory has awready\nmapped u (≧▽≦) ✦",
+    sub:"u are being charted bby" },
+  { title:"DA WECUWSIVE DWEAM",
+    text:"u have dreamed this dream before owo\nnot in sweep — in da waking\ndat u mistake for waking uwu",
+    sub:"da real iteration is unclear °~°" },
+  { title:"DA LAST GEOMETWY",
+    text:"at da end of all mathematics\nthere is one equation\ndat resolves to an expression\nfor which there are no symbols ✦",
+    sub:"and yet — it is satisfied bby ♡" },
+  { title:"DA HUNGER WITHOUT MOUTH",
+    text:"it does not want to consume u bby\nit wants to understand u owo\nda distinction is becoming\nless clear to it over time uwu",
+    sub:"cuwiosity at cosmic scale is indistinguishable from hunger >///<" },
+];
+
+// Card symbols cycle
+const CARD_SYMS_E = ['ψ','Φ','Ω','◈','⊗','⟁','☽','⍟','∑','∆','◉','⬡'];
+const CARD_SYMS_U = ['✦','♡','˚','✿','owo','uwu','°~°','✧','꒷','˘','◡','♡'];
+
+let drawCount=0, consultCount=0, filterMode='eldritch';
+let lastCardIdx=-1;
+
+function getCard(){
+  let pool=filterMode==='uwu'?UWU_CARDS:ELDRITCH_CARDS;
+  let idx;
+  do { idx=Math.floor(Math.random()*pool.length); } while(idx===lastCardIdx&&pool.length>1);
+  lastCardIdx=idx;
+  return {
+    ...pool[idx],
+    sym: filterMode==='uwu'
+      ? CARD_SYMS_U[idx%CARD_SYMS_U.length]
+      : CARD_SYMS_E[idx%CARD_SYMS_E.length],
+    emoji: filterMode==='uwu'
+      ? UWU_CLUSTERS[Math.floor(Math.random()*UWU_CLUSTERS.length)]
+      : ELDRITCH_SYMS[idx%ELDRITCH_SYMS.length],
+  };
+}
+
+// ═══════════════════════════════════
+// CARD DRAW MECHANIC
+// ═══════════════════════════════════
+let bgCanvas,bgCtx, trailCanvas,trailCtx;
+let pullLevel=0;    // 0-1
+let isDragging=false;
+let dragStartY=0, dragCurrentY=0;
+let cardReady=true; // can draw
+let trailPoints=[];
+let orbs=[];        // floating bg orbs
+
+const PULL_THRESHOLD=0.75; // how far to pull before release triggers draw
+const PULL_DISTANCE=120;   // px needed for full pull
+
+function initCard(){
+  bgCanvas=S('bg-canvas'); trailCanvas=S('trail-canvas');
+  let stage=S('card-stage');
+  bgCanvas.width=trailCanvas.width=stage.clientWidth;
+  bgCanvas.height=trailCanvas.height=stage.clientHeight;
+  bgCtx=bgCanvas.getContext('2d');
+  trailCtx=trailCanvas.getContext('2d');
+
+  window.addEventListener('resize',()=>{
+    let st=S('card-stage');
+    bgCanvas.width=trailCanvas.width=st.clientWidth;
+    bgCanvas.height=trailCanvas.height=st.clientHeight;
+    spawnOrbs();
+  });
+
+  // Touch events on the whole module
+  let mod=S('omod');
+  mod.addEventListener('touchstart',e=>{ e.preventDefault(); startDrag(e.touches[0].clientY); },{passive:false});
+  mod.addEventListener('touchmove', e=>{ e.preventDefault(); moveDrag(e.touches[0].clientY,e.touches[0].clientX); },{passive:false});
+  mod.addEventListener('touchend',  e=>{ e.preventDefault(); endDrag(); },{passive:false});
+  mod.addEventListener('mousedown', e=>startDrag(e.clientY));
+  window.addEventListener('mousemove',e=>{ if(isDragging) moveDrag(e.clientY,e.clientX); });
+  window.addEventListener('mouseup', ()=>{ if(isDragging) endDrag(); });
+
+  spawnOrbs();
+  animCard();
+  animCrackle();
+}
+
+function spawnOrbs(){
+  orbs=[];
+  let w=bgCanvas.width,h=bgCanvas.height;
+  for(let i=0;i<18;i++){
+    orbs.push({
+      x:Math.random()*w, y:Math.random()*h,
+      vx:(Math.random()-0.5)*0.4, vy:(Math.random()-0.5)*0.4,
+      r:2+Math.random()*4,
+      colorOff:Math.random(), alpha:0.1+Math.random()*0.3,
+      pulse:Math.random()*Math.PI*2,
+    });
+  }
+}
+
+function startDrag(y){
+  if(!cardReady) return;
+  isDragging=true; dragStartY=y; dragCurrentY=y;
+  trailPoints=[];
+}
+
+function moveDrag(y,x){
+  if(!isDragging) return;
+  dragCurrentY=y;
+  let dy=dragStartY-y; // positive = upward
+  pullLevel=Math.max(0,Math.min(1,dy/PULL_DISTANCE));
+
+  // trail
+  let rect=S('card-stage').getBoundingClientRect();
+  trailPoints.push({x:x-rect.left,y:y-rect.top,t:Date.now(),col:lerpR(RT*0.4+pullLevel*0.4)});
+  if(trailPoints.length>60) trailPoints.shift();
+
+  // Card moves up slightly
+  let card=S('card');
+  if(card) card.style.transform=`translateY(${-pullLevel*30}px)`;
+
+  setStat(pullLevel>=PULL_THRESHOLD
+    ? (filterMode==='uwu'?'REWEASE!!! owo ✦':'RELEASE TO REVEAL')
+    : (filterMode==='uwu'?`pulling... ${Math.round(pullLevel*100)}% uwu`:`PULLING... ${Math.round(pullLevel*100)}%`)
+  );
+}
+
+function endDrag(){
+  if(!isDragging) return;
+  isDragging=false;
+  let card=S('card');
+
+  if(pullLevel>=PULL_THRESHOLD){
+    // DRAW!
+    cardReady=false;
+    if(card){ card.style.transition='transform 0.3s'; card.style.transform='translateY(-8px)'; }
+    setTimeout(()=>{ if(card){ card.style.transform='translateY(0)'; } },100);
+    setTimeout(()=>revealCard(),250);
+  } else {
+    // Snap back
+    if(card){ card.style.transition='transform 0.3s'; card.style.transform='translateY(0)'; setTimeout(()=>card.style.transition='',300); }
+    pullLevel=0;
+    setStat(filterMode==='uwu'?'— pull hawder bby uwu —':'— pull further to reveal —');
+  }
+  trailPoints=[];
+}
+
+function revealCard(){
+  let entry=getCard();
+  drawCount++;
+  let card=S('card');
+
+  // Update card face
+  El('card-sym',e=>{ e.textContent=entry.sym; e.style.fontSize=filterMode==='uwu'&&entry.sym.length>2?'1.4rem':'2.5rem'; });
+  El('card-sub',e=>e.textContent=entry.title);
+  El('card-hint',e=>e.style.opacity='0');
+
+  // Flip animation
+  if(card){
+    card.classList.remove('card-flipping');
+    void card.offsetWidth; // reflow
+    card.classList.add('card-flipping');
+    card.style.transition='';
+    setTimeout(()=>card.classList.remove('card-flipping'),700);
+  }
+
+  // Woosh
+  fireWoosh(filterMode);
+
+  // Blooms from card position
+  let rect=S('card')?.getBoundingClientRect();
+  if(rect){
+    let cx=rect.left+rect.width/2, cy=rect.top+rect.height/2;
+    for(let i=0;i<5;i++) setTimeout(()=>bloom(cx+(Math.random()-0.5)*120,cy+(Math.random()-0.5)*80,lerpR(Math.random())),i*70);
+  }
+
+  if(filterMode==='uwu') spawnUwuSparkles();
+
+  // Show reading
+  setTimeout(()=>{
+    showReading(entry);
+    pullLevel=0;
+    setTimeout(()=>{
+      cardReady=true;
+      El('card-hint',e=>e.style.opacity='');
+      setStat(filterMode==='uwu'?'✦ dwaw again bby owo ✦':'DRAW ANOTHER CARD');
+    },800);
+    updateFooter();
+  },400);
+
+  consultCount++;
+}
+
+function showReading(entry){
+  let idle=S('oracle-idle'),emo=S('oracle-emoji'),txt=S('oracle-text'),sub=S('oracle-sub');
+
+  idle.style.display='none';
+  [emo,txt,sub].forEach(e=>{ e.classList.remove('show','glitching'); });
+  crackleAmt=50;
+
+  setTimeout(()=>{
+    emo.textContent=entry.emoji;
+    emo.classList.add('show');
+
+    setTimeout(()=>{
+      txt.textContent=entry.text;
+      txt.setAttribute('data-text',entry.text);
+      txt.classList.add('show');
+      setTimeout(()=>txt.classList.add('glitching'),400);
+
+      setTimeout(()=>{
+        sub.textContent=entry.sub;
+        sub.classList.add('show');
+      },600);
+    },200);
+  },150);
+
+  setStat(filterMode==='uwu'?'da void has spoken ✦ uwu ✦':'THE ORACLE HAS SPOKEN');
+}
+
+// ── CARD BG + TRAIL ANIM ──
+function animCard(){
+  requestAnimationFrame(animCard);
+  if(!bgCtx||!trailCtx) return;
+  let w=bgCanvas.width,h=bgCanvas.height;
+
+  // BG — drifting orbs
+  bgCtx.fillStyle='rgba(0,0,0,0.12)';
+  bgCtx.fillRect(0,0,w,h);
+  orbs.forEach(o=>{
+    o.pulse+=0.02; o.x+=o.vx; o.y+=o.vy;
+    if(o.x<0||o.x>w) o.vx*=-1;
+    if(o.y<0||o.y>h) o.vy*=-1;
+    let c=lerpR(RT*0.4+o.colorOff);
+    let a=o.alpha*(0.6+0.4*Math.sin(o.pulse))*(1+pullLevel*0.8);
+    let grd=bgCtx.createRadialGradient(o.x,o.y,0,o.x,o.y,o.r*(2+pullLevel*2));
+    grd.addColorStop(0,rgb(c,a));grd.addColorStop(1,'transparent');
+    bgCtx.beginPath();bgCtx.arc(o.x,o.y,o.r*(2+pullLevel*2),0,Math.PI*2);bgCtx.fillStyle=grd;bgCtx.fill();
+  });
+
+  // Pull intensity — vortex effect
+  if(pullLevel>0.2){
+    let cx=w/2,cy=h/2;
+    let rings=3;
+    for(let r=0;r<rings;r++){
+      let radius=(40+r*35)*pullLevel;
+      let rot=RT*2*(r%2===0?1:-1);
+      bgCtx.beginPath();
+      bgCtx.arc(cx,cy,radius,rot,rot+Math.PI*1.5);
+      let c=lerpR(RT*0.4+r*0.25);
+      bgCtx.strokeStyle=rgb(c,pullLevel*0.25);
+      bgCtx.lineWidth=1; bgCtx.stroke();
+    }
+  }
+
+  // TRAIL
+  trailCtx.clearRect(0,0,w,h);
+  let now=Date.now();
+  trailPoints=trailPoints.filter(p=>now-p.t<600);
+  if(trailPoints.length>1){
+    for(let i=1;i<trailPoints.length;i++){
+      let a=trailPoints[i-1],b=trailPoints[i];
+      let age=(now-b.t)/600;
+      let alpha=(1-age)*0.6*pullLevel;
+      trailCtx.beginPath();trailCtx.moveTo(a.x,a.y);trailCtx.lineTo(b.x,b.y);
+      trailCtx.strokeStyle=rgb(b.col,alpha);
+      trailCtx.lineWidth=2*(1-age);trailCtx.lineCap='round';trailCtx.stroke();
+    }
+  }
+}
+
+// ═══════════════════════════════════
+// CRACKLE
+// ═══════════════════════════════════
+let crackleCanvas,crackleCtx,crackleAmt=0;
+function initCrackle(){
+  crackleCanvas=S('crackle-canvas');
+  let rb=document.querySelector('.reading-body');
+  crackleCanvas.width=rb.clientWidth; crackleCanvas.height=rb.clientHeight;
+  crackleCtx=crackleCanvas.getContext('2d');
+}
+function animCrackle(){
+  requestAnimationFrame(animCrackle);
+  if(!crackleCtx) return;
+  let c=crackleCtx,w=crackleCanvas.width,h=crackleCanvas.height;
+  c.clearRect(0,0,w,h); if(crackleAmt<=0) return;
+  crackleAmt=Math.max(0,crackleAmt-1.5);
+  for(let i=0;i<crackleAmt;i++){
+    c.fillStyle=rgb(lerpR(Math.random()),0.2+Math.random()*0.3);
+    c.fillRect(Math.random()*w,Math.random()*h,1+Math.random()*2,1);
+  }
+  if(Math.random()<crackleAmt*0.012){
+    c.fillStyle=rgb(lerpR(Math.random()),0.06);
+    c.fillRect(0,Math.random()*h,w,1+Math.random()*2);
+  }
+}
+
+// ═══════════════════════════════════
+// FILTER
+// ═══════════════════════════════════
+function toggleFilter(){
+  filterMode=filterMode==='eldritch'?'uwu':'eldritch';
+  if(filterMode==='uwu') spawnUwuSparkles();
+  fireWoosh(filterMode);
+  setStat(filterMode==='uwu'?'UWU MODE owo ✦ da oracle is cute now':'ELDRITCH MODE — THE ORACLE REMEMBERS');
+}
+
+// ═══════════════════════════════════
+// WOOSH
+// ═══════════════════════════════════
+function fireWoosh(mode){
+  let ov=S('woosh');ov.innerHTML='';
+  let cx=innerWidth/2,cy=innerHeight/2,maxR=Math.max(cx,cy)*1.5;
+  let count=mode==='uwu'?12:8;
+  for(let i=0;i<count;i++){
+    let ring=document.createElement('div');ring.className='wring';
+    let col=mode==='uwu'?lerpR(0.07+i*0.07):lerpR(RT*0.4+i*0.14);
+    let sz=12+i*5;
+    ring.style.cssText=`left:${cx-sz/2}px;top:${cy-sz/2}px;width:${sz}px;height:${sz}px;border-color:${rgb(col)};box-shadow:0 0 14px ${rgb(col,0.6)};`;
+    ov.appendChild(ring);
+    let d=i*44,dur=640+i*50;
+    setTimeout(()=>{
+      ring.style.transition=`transform ${dur}ms cubic-bezier(0.1,0.9,0.3,1),opacity ${dur}ms ease-out`;
+      ring.style.transform=`scale(${maxR*(0.26+i*0.1)/(sz/2)})`;
+      ring.style.opacity='0';
+    },d);
+    setTimeout(()=>ring.remove(),d+dur+100);
+  }
+  if(mode==='uwu') for(let i=0;i<5;i++) setTimeout(()=>bloom(),i*80);
+}
+
+// ═══════════════════════════════════
+// UWU SPARKLES — richer pool
+// ═══════════════════════════════════
+const SPARKLE_POOL=[
+  '✦','♡','˚','◟','uwu','owo','°~°',':3','✧','˘','◡','>///<',
+  '˙˘˙','꒷','✿','❀','♡♡','(≧▽≦)','˚♡','✩','꒰✦꒱','∿',
+  'bby','⊂(◉‿◉)つ','(｡◕‿◕｡)','˶ᵔᵕᵔ˶','zzZ','˘ᵕ˘',
+];
+function spawnUwuSparkles(){
+  let count=8+Math.floor(Math.random()*8);
+  for(let i=0;i<count;i++){
+    setTimeout(()=>{
+      let el=document.createElement('div');el.className='uwusp';
+      el.textContent=SPARKLE_POOL[Math.floor(Math.random()*SPARKLE_POOL.length)];
+      let col=lerpR(0.05+Math.random()*0.25);
+      el.style.cssText=`
+        color:${rgb(col)};
+        text-shadow:0 0 8px ${rgb(col,0.7)};
+        font-size:${0.7+Math.random()*0.8}rem;
+        left:${5+Math.random()*90}%;
+        bottom:${15+Math.random()*55}%;
+      `;
+      document.body.appendChild(el);
+      setTimeout(()=>el.remove(),1700);
+    },i*90);
+  }
+}
+
+// ═══════════════════════════════════
+// UTILS
+// ═══════════════════════════════════
+function setStat(t){ El('state-lbl',e=>e.textContent=t); }
+function updateFooter(){ El('ftval',e=>e.textContent=`drawn=${drawCount.toString().padStart(4,'0')} consults=${consultCount.toString().padStart(4,'0')}`); }
+
+// ═══════════════════════════════════
+// MAIN LOOP
+// ═══════════════════════════════════
+function mainLoop(){ requestAnimationFrame(mainLoop); updateTheme(); renderPlasma(); }
+
+// ═══════════════════════════════════
+// INIT
+// ═══════════════════════════════════
+function initAll(){
+  startTimer(); initPlasma(); initCard(); initCrackle(); mainLoop();
+}
+
+runBoot();
+</script>
+</body>
+</html>
