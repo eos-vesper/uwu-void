@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>VOID ENCOUNTER</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap');
+
+* { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+html,body { width:100%; height:100%; background:#000; overflow:hidden; touch-action:pan-y; font-family:'Share Tech Mono',monospace; }
+body::before {
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:3000;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.1) 2px,rgba(0,0,0,0.1) 4px);
+}
+body::after {
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:2999;
+  background:radial-gradient(ellipse at center,transparent 42%,rgba(0,0,0,0.93) 100%);
+}
+#plasma { position:fixed; inset:0; z-index:0; opacity:0.12; }
+
+/* BOOT */
+#boot {
+  position:fixed; inset:0; background:#000; z-index:4000;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:2rem; transition:opacity 0.7s;
+}
+#boot.hidden { opacity:0; pointer-events:none; }
+.btext { font-family:'VT323',monospace; font-size:1.05rem; line-height:1.9; width:100%; max-width:360px; }
+.bline { opacity:0; animation:brev 0.05s forwards; }
+@keyframes brev { to{opacity:1;} }
+#bootbtn {
+  margin-top:2rem; padding:0.9rem 2.2rem; background:transparent;
+  font-family:'VT323',monospace; font-size:1.7rem; letter-spacing:4px;
+  cursor:pointer; opacity:0; animation:brev 0.3s 3s forwards;
+}
+
+/* APP */
+#app {
+  position:fixed; inset:0; z-index:10; display:flex; flex-direction:column;
+  opacity:0; transition:opacity 0.9s; background:rgba(0,0,5,0.76);
+}
+#app.visible { opacity:1; }
+
+/* HEADER */
+.hdr {
+  flex-shrink:0; padding:0.5rem 0.9rem; border-bottom:1px solid;
+  display:flex; justify-content:space-between; align-items:center;
+  background:rgba(0,0,0,0.55);
+}
+.htitle { font-family:'VT323',monospace; font-size:1.2rem; letter-spacing:3px; }
+.hright { font-size:0.55rem; text-align:right; line-height:1.8; opacity:0.65; }
+.sdot { display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:3px; vertical-align:middle; animation:sdp 1.8s infinite; }
+@keyframes sdp { 0%,100%{opacity:1;} 50%{opacity:0.1;} }
+
+/* SCROLL BODY */
+#scroll-body {
+  flex:1; overflow-y:auto; overflow-x:hidden; display:flex; flex-direction:column;
+  -webkit-overflow-scrolling:touch;
+}
+#scroll-body::-webkit-scrollbar { width:3px; }
+#scroll-body::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.1); border-radius:2px; }
+
+/* MODULE */
+.mod {
+  flex-shrink:0; position:relative; border-bottom:1px solid;
+  background:rgba(0,0,4,0.45); overflow:hidden;
+  padding:1.4rem 0.9rem 0.9rem;
+}
+.mod:last-child { border-bottom:none; }
+.mlbl { position:absolute; top:0.35rem; left:0.65rem; font-size:0.55rem; letter-spacing:2px; opacity:0.5; pointer-events:none; }
+.mid  { position:absolute; top:0.35rem; right:0.65rem; font-size:0.55rem; opacity:0.3; pointer-events:none; }
+.mod::before,.mod::after { content:''; position:absolute; width:10px; height:10px; border-style:solid; opacity:0.3; z-index:1; pointer-events:none; }
+.mod::before { top:3px; left:3px; border-width:1px 0 0 1px; }
+.mod::after  { bottom:3px; right:3px; border-width:0 1px 1px 0; }
+
+/* ELEMENT SLOT */
+.element-slot { display:flex; flex-direction:column; gap:0.4rem; margin-bottom:0.85rem; }
+.element-slot:last-of-type { margin-bottom:0.3rem; }
+.el-header { display:flex; justify-content:space-between; align-items:baseline; }
+.el-label  { font-size:0.52rem; letter-spacing:2px; opacity:0.5; }
+.el-tier   { font-family:'VT323',monospace; font-size:0.9rem; letter-spacing:1px; opacity:0.65; }
+.el-word {
+  font-family:'VT323',monospace; font-size:1.5rem; letter-spacing:2px;
+  cursor:pointer; display:flex; align-items:center; gap:0.5rem;
+  min-height:2rem; transition:opacity 0.2s;
+}
+.el-word .rr { font-size:0.48rem; letter-spacing:1px; opacity:0.22; font-family:'Share Tech Mono',monospace; }
+
+/* Spectrum slider */
+.spec-wrap { display:flex; flex-direction:column; gap:0.25rem; }
+.spec-labels { display:flex; justify-content:space-between; font-size:0.4rem; letter-spacing:0.05em; opacity:0.28; }
+.spec-track { position:relative; height:6px; border-radius:3px; background:rgba(255,255,255,0.06); cursor:pointer; }
+.spec-fill  { position:absolute; left:0; top:0; height:100%; border-radius:3px; }
+.spec-thumb {
+  position:absolute; top:50%; transform:translate(-50%,-50%);
+  width:14px; height:14px; border-radius:50%; border:2px solid; background:#000;
+  cursor:grab; touch-action:none;
+}
+.spec-thumb:active { cursor:grabbing; }
+
+#add-third-btn {
+  width:100%; margin-top:0.75rem; padding:0.5rem;
+  background:transparent; border:1px dashed; border-radius:2px;
+  font-family:'Share Tech Mono',monospace; font-size:0.53rem; letter-spacing:2px;
+  cursor:pointer; opacity:0.38; transition:opacity 0.2s;
+}
+
+/* MODIFIER */
+.mod-row { display:flex; gap:0.5rem; }
+.mbtn {
+  flex:1; padding:0.55rem 0.3rem; background:transparent; border:1px solid;
+  font-family:'VT323',monospace; font-size:1.05rem; letter-spacing:2px;
+  cursor:pointer; transition:all 0.2s; text-align:center; opacity:0.32; border-radius:2px;
+}
+.mbtn.active { opacity:1; }
+.mbtn:active { transform:scale(0.97); }
+
+/* CONTROLS ROW */
+.ctrl-row { display:flex; gap:0.55rem; align-items:center; flex-wrap:wrap; }
+
+#cast-btn {
+  flex:1; min-width:110px; padding:0.65rem 0.4rem;
+  background:transparent; border:2px solid;
+  font-family:'VT323',monospace; font-size:1.35rem; letter-spacing:3px;
+  cursor:pointer; transition:all 0.2s; text-align:center;
+}
+#cast-btn:active { transform:scale(0.97); }
+
+/* Length selector */
+.len-wrap { display:flex; flex-direction:column; gap:0.2rem; flex-shrink:0; }
+.len-lbl  { font-size:0.44rem; letter-spacing:0.12em; opacity:0.38; }
+.len-btns { display:flex; gap:0.25rem; }
+.lbtn {
+  padding:0.3rem 0.45rem; background:transparent; border:1px solid;
+  font-family:'VT323',monospace; font-size:0.85rem; letter-spacing:1px;
+  cursor:pointer; opacity:0.3; transition:all 0.2s; border-radius:1px;
+}
+.lbtn.active { opacity:1; }
+
+#copy-btn {
+  padding:0.65rem 0.7rem; background:transparent; border:1px solid;
+  font-family:'Share Tech Mono',monospace; font-size:0.5rem; letter-spacing:2px;
+  cursor:pointer; transition:all 0.2s; opacity:0.4; white-space:nowrap;
+}
+#copy-btn:active { transform:scale(0.96); }
+
+/* Filter toggle */
+.ftog-wrap { display:flex; align-items:center; gap:0.38rem; flex-shrink:0; }
+.ftog-lbl  { font-size:0.45rem; letter-spacing:0.12em; opacity:0.38; }
+.ftog {
+  position:relative; width:56px; height:22px; border:1px solid; border-radius:11px;
+  cursor:pointer; background:rgba(0,0,0,0.4); flex-shrink:0; overflow:hidden;
+}
+.fthumb { position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; transition:transform 0.3s cubic-bezier(0.4,0,0.2,1), background 0.3s; }
+.ftog.uwu .fthumb { transform:translateX(34px); }
+.fmode { font-family:'VT323',monospace; font-size:0.9rem; letter-spacing:1px; white-space:nowrap; min-width:66px; }
+
+/* OUTPUT */
+#output-mod { min-height:110px; }
+.out-tags { display:flex; flex-wrap:wrap; gap:0.38rem; margin-bottom:0.65rem; opacity:0; transition:opacity 0.4s; }
+.out-tags.show { opacity:1; }
+.out-tag { font-size:0.46rem; letter-spacing:1.5px; padding:0.18rem 0.45rem; border:1px solid; opacity:0.55; }
+.out-idle { font-size:0.56rem; letter-spacing:2px; opacity:0.18; text-align:center; padding:1.2rem 0; }
+.out-text {
+  font-family:'VT323',monospace; font-size:1.1rem; line-height:1.65;
+  letter-spacing:0.07em; white-space:pre-wrap;
+  opacity:0; transition:opacity 0.5s; min-height:3rem; position:relative;
+}
+.out-text.show { opacity:1; }
+.out-text::before,.out-text::after {
+  content:attr(data-text); position:absolute; inset:0; white-space:pre-wrap; pointer-events:none;
+}
+.out-text::before { color:#ff00ff; opacity:0; animation:ga 3s infinite; clip-path:polygon(0 10%,100% 10%,100% 34%,0 34%); }
+.out-text::after  { color:#00ffff; opacity:0; animation:gb 3.5s infinite; clip-path:polygon(0 63%,100% 63%,100% 84%,0 84%); }
+.out-text.glitching::before { opacity:0.4; }
+.out-text.glitching::after  { opacity:0.32; }
+@keyframes ga { 0%,91%,100%{transform:none;} 92%{transform:translate(-3px,0) skewX(-2deg);} 95%{transform:translate(2px,0);} }
+@keyframes gb { 0%,87%,100%{transform:none;} 88%{transform:translate(4px,0) skewX(2deg);} 92%{transform:translate(-2px,0);} }
+
+/* FOOTER */
+.ftr {
+  flex-shrink:0; padding:0.25rem 0.9rem; border-top:1px solid;
+  display:flex; justify-content:space-between; font-size:0.47rem; letter-spacing:0.1em; opacity:0.35;
+}
+
+/* WOOSH */
+#woosh { position:fixed; inset:0; pointer-events:none; z-index:2500; }
+.wring { position:absolute; border-radius:50%; border:2px solid; transform:scale(0); opacity:0; }
+.uwusp { position:fixed; pointer-events:none; z-index:2490; animation:spf 1.5s ease-out forwards; }
+@keyframes spf { 0%{opacity:1;transform:translateY(0) scale(1);} 100%{opacity:0;transform:translateY(-90px) scale(0.1);} }
+</style>
+</head>
+<body>
+<canvas id="plasma"></canvas>
+<div id="woosh"></div>
+
+<div id="boot">
+  <div class="btext" id="btext"></div>
+  <button id="bootbtn" onclick="activate()">[ OPEN THE ENCOUNTER TABLE ]</button>
+</div>
+
+<div id="app">
+  <div class="hdr" id="hdr">
+    <div class="htitle" id="htitle">VOID ENCOUNTER</div>
+    <div class="hright"><span class="sdot" id="sdot"></span>OFFLINE<br><span id="stime">00:00:00</span></div>
+  </div>
+
+  <div id="scroll-body">
+    <div class="mod" id="emod">
+      <div class="mlbl" id="lbl1">// ELEMENTS</div>
+      <div class="mid">MOD-01</div>
+      <div id="el-container"></div>
+      <button id="add-third-btn" onclick="toggleThird()">+ ADD THIRD ELEMENT</button>
+    </div>
+
+    <div class="mod" id="mmod">
+      <div class="mlbl" id="lbl2">// ENCOUNTER MODIFIER</div>
+      <div class="mid">MOD-02</div>
+      <div class="mod-row">
+        <button class="mbtn" id="mbtn-doom"    onclick="setMod('doom')">⬇ DOOM</button>
+        <button class="mbtn active" id="mbtn-neutral" onclick="setMod('neutral')">◯ NEUTRAL</button>
+        <button class="mbtn" id="mbtn-fate"    onclick="setMod('fate')">⬆ FATE</button>
+      </div>
+    </div>
+
+    <div class="mod" id="cmod">
+      <div class="mlbl" id="lbl3">// CAST</div>
+      <div class="mid">MOD-03</div>
+      <div class="ctrl-row">
+        <button id="cast-btn" onclick="castEncounter()">⬡ GENERATE ⬡</button>
+        <div class="len-wrap">
+          <span class="len-lbl">LENGTH</span>
+          <div class="len-btns">
+            <button class="lbtn" id="lb-spark"    onclick="setLen('spark')">SPARK</button>
+            <button class="lbtn active" id="lb-echo" onclick="setLen('echo')">ECHO</button>
+            <button class="lbtn" id="lb-omen"    onclick="setLen('omen')">OMEN</button>
+            <button class="lbtn" id="lb-prophecy" onclick="setLen('prophecy')">PROPHECY</button>
+          </div>
+        </div>
+        <button id="copy-btn" onclick="copyOut()">⎘ COPY</button>
+        <div class="ftog-wrap">
+          <span class="ftog-lbl">MODE</span>
+          <div class="ftog eldritch" id="ftog" onclick="toggleFilter()"><div class="fthumb" id="fthumb"></div></div>
+          <span class="fmode" id="fmodetxt">ELDRITCH</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="mod" id="output-mod">
+      <div class="mlbl" id="lbl4">// ENCOUNTER OUTPUT</div>
+      <div class="mid">MOD-04</div>
+      <div class="out-tags" id="out-tags"></div>
+      <div class="out-idle"  id="out-idle">— configure elements and generate —</div>
+      <div class="out-text"  id="out-text" data-text=""></div>
+    </div>
+  </div>
+
+  <div class="ftr" id="ftr">
+    <span>⬡ VOID ENCOUNTER · OFFLINE EDITION ⬡</span>
+    <span id="ftval">rolls=0000</span>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ══════════════════════════════════════════
+// RAZOR GRADIENT
+// ══════════════════════════════════════════
+const RAZOR=[[0,255,65],[0,210,255],[170,0,255],[255,0,190],[255,170,0],[0,255,65]];
+let RT=0,RC=[0,255,65],RS=[0,180,255],RTH=[140,0,255];
+function lerpR(p){let t=((p%1)+1)%1,n=RAZOR.length-1,i=Math.floor(t*n),f=t*n-i,a=RAZOR[i],b=RAZOR[Math.min(i+1,n)];return[Math.round(a[0]+(b[0]-a[0])*f),Math.round(a[1]+(b[1]-a[1])*f),Math.round(a[2]+(b[2]-a[2])*f)];}
+function rgb(c,a){return a!=null?`rgba(${c[0]},${c[1]},${c[2]},${a})`:`rgb(${c[0]},${c[1]},${c[2]})`;}
+function S(id){return document.getElementById(id);}
+function El(id,fn){let e=S(id);if(e)fn(e);}
+function pick(a){return a[Math.floor(Math.random()*a.length)];}
+
+let blooms=[];
+function bloom(x,y,col){blooms.push({x:x??Math.random()*innerWidth,y:y??Math.random()*innerHeight,r:0,maxR:70+Math.random()*160,color:col??lerpR(Math.random()),alpha:0.1+Math.random()*0.18});}
+
+function updateTheme(){
+  RT+=0.014;RC=lerpR(RT*0.38);RS=lerpR(RT*0.38+0.35);RTH=lerpR(RT*0.38+0.7);
+  if(Math.random()<0.014) bloom();
+  let ms=rgb(RC),md=rgb(RC,0.16),isU=filterMode==='uwu',fc=isU?lerpR(0.14):RTH;
+  El('htitle',e=>{e.style.color=ms;e.style.textShadow=`0 0 14px ${rgb(RC,0.28)}`;});
+  El('hdr',e=>e.style.borderColor=md);
+  El('sdot',e=>{e.style.background=ms;e.style.boxShadow=`0 0 8px ${ms}`;});
+  El('ftr',e=>{e.style.borderColor=md;e.style.color=rgb(RC,0.35);});
+  ['emod','mmod','cmod','output-mod'].forEach((id,i)=>{let c=lerpR(RT*0.38+i*0.25);El(id,e=>e.style.borderColor=rgb(c,0.14));});
+  document.querySelectorAll('.mlbl').forEach((e,i)=>e.style.color=rgb(lerpR(RT*0.38+i*0.25),0.55));
+  El('cast-btn',e=>{e.style.borderColor=rgb(RTH);e.style.color=rgb(RTH);e.style.boxShadow=`0 0 14px ${rgb(RTH,0.2)}`;});
+  El('copy-btn',e=>{e.style.borderColor=rgb(RS,0.38);e.style.color=rgb(RS,0.55);});
+  El('ftog',e=>{e.style.borderColor=rgb(fc,0.5);e.classList.toggle('uwu',isU);e.classList.toggle('eldritch',!isU);});
+  El('fthumb',e=>{e.style.background=rgb(fc);e.style.boxShadow=`0 0 6px ${rgb(fc)}`;});
+  El('fmodetxt',e=>{e.textContent=isU?'UWU MODE':'ELDRITCH';e.style.color=rgb(fc);e.style.textShadow=`0 0 8px ${rgb(fc,0.5)}`;});
+  ['doom','neutral','fate'].forEach(m=>{
+    El('mbtn-'+m,e=>{
+      let active=curMod===m,col=m==='doom'?lerpR(0.62):m==='fate'?lerpR(0.84):RC;
+      e.style.borderColor=rgb(col,active?0.7:0.22);e.style.color=rgb(col,active?1:0.32);
+      e.style.boxShadow=active?`0 0 10px ${rgb(col,0.2)}`:'none';
+    });
+  });
+  ['spark','echo','omen','prophecy'].forEach(l=>{
+    El('lb-'+l,e=>{
+      let active=curLen===l;
+      e.style.borderColor=rgb(RS,active?0.6:0.2);e.style.color=rgb(RS,active?1:0.32);
+    });
+  });
+  El('out-text',e=>{let c=isU?lerpR(RT*0.38+0.15):RC;e.style.color=rgb(c);e.style.textShadow=`0 0 8px ${rgb(c,0.38)}`;});
+  El('add-third-btn',e=>{e.style.borderColor=rgb(RC,0.22);e.style.color=rgb(RC,0.42);});
+  document.querySelectorAll('.el-word').forEach((e,i)=>{let c=lerpR(RT*0.38+i*0.2);e.style.color=rgb(c);e.style.textShadow=`0 0 10px ${rgb(c,0.45)}`;});
+  document.querySelectorAll('.el-tier').forEach((e,i)=>{e.style.color=rgb(lerpR(RT*0.38+i*0.2),0.6);});
+  document.querySelectorAll('.spec-fill').forEach((e,i)=>{let c=lerpR(RT*0.38+i*0.22);e.style.background=`linear-gradient(to right,${rgb(lerpR(0.3),0.3)},${rgb(c)})`;});
+  document.querySelectorAll('.spec-thumb').forEach((e,i)=>{let c=lerpR(RT*0.38+i*0.22);e.style.borderColor=rgb(c);e.style.boxShadow=`0 0 8px ${rgb(c,0.6)}`;});
+  El('bootbtn',e=>{e.style.borderColor=ms;e.style.color=ms;});
+}
+
+// ══════════════════════════════════════════
+// PLASMA
+// ══════════════════════════════════════════
+let pCanvas,pCtx,pOff,pOffCtx,pT=0;
+function initPlasma(){
+  pCanvas=S('plasma');pCanvas.width=innerWidth;pCanvas.height=innerHeight;pCtx=pCanvas.getContext('2d');
+  pOff=document.createElement('canvas');pOff.width=Math.ceil(innerWidth/7);pOff.height=Math.ceil(innerHeight/7);pOffCtx=pOff.getContext('2d');
+}
+function renderPlasma(){
+  pT+=0.009;let w=pOff.width,h=pOff.height,img=pOffCtx.createImageData(w,h),d=img.data;
+  for(let py=0;py<h;py++)for(let px=0;px<w;px++){
+    let v=Math.sin(px*0.27+pT)+Math.sin(py*0.21+pT*1.1)+Math.sin((px+py)*0.13+pT*0.9)+Math.sin(Math.sqrt(px*px+py*py)*0.17+pT*1.3);
+    let c=lerpR((v+4)/8+pT*0.07),idx=(py*w+px)*4;d[idx]=c[0];d[idx+1]=c[1];d[idx+2]=c[2];d[idx+3]=255;
+  }
+  pOffCtx.putImageData(img,0,0);pCtx.clearRect(0,0,pCanvas.width,pCanvas.height);pCtx.imageSmoothingEnabled=true;pCtx.drawImage(pOff,0,0,pCanvas.width,pCanvas.height);
+  blooms=blooms.filter(b=>b.r<b.maxR);
+  blooms.forEach(b=>{b.r+=3;let g=pCtx.createRadialGradient(b.x,b.y,0,b.x,b.y,b.r);g.addColorStop(0,rgb(b.color,b.alpha*(1-b.r/b.maxR)));g.addColorStop(1,'transparent');pCtx.beginPath();pCtx.arc(b.x,b.y,b.r,0,Math.PI*2);pCtx.fillStyle=g;pCtx.fill();});
+}
+
+// ══════════════════════════════════════════
+// TEXT ENGINE — THE HEART
+// ══════════════════════════════════════════
+
+// TIER DEFINITIONS
+const TIERS=[
+  {name:'MANIFEST', sub:'concrete entity',
+   words:['Cthulhu','Nyarlathotep','Dagon','Hastur','Shub-Niggurath','Azathoth','Yog-Sothoth','The Deep Ones','Mi-Go','Shoggoth','Gug','Nightgaunt','Byakhee','Star-Spawn','The Colour Out of Space']},
+  {name:'TANGIBLE',  sub:'object or place',
+   words:["R'lyeh",'The Necronomicon','Black Altar','Sunken City','Eldritch Artifact','Ritual Circle','Forbidden Library','Blood Moon','Carved Idol','Cursed Lighthouse','The Yellow Sign','Tainted Spring','Ancient Monolith','Sacrificial Chamber','The Dreamlands Gate']},
+  {name:'LIMINAL',   sub:'event or state',
+   words:['Awakening','Descent into Madness','Initiation','Revelation','Corruption','Obsession','Fracture','Transformation','Convergence','Threshold Crossing','The First Dream','Dissolution','Summoning','Possession','The Breaking Point']},
+  {name:'ETHEREAL',  sub:'force or feeling',
+   words:['Cosmic Dread','Inevitability','Hunger Without Form','Silence That Watches','The Weight of Ages','Unraveling','Resonance','Absence','Void-Touch','The Pulse','Longing','Recursive Horror','Dissolution','Vibration','The Nameless Pull']},
+  {name:'VOID',      sub:'pure abstraction',
+   words:['Forgetting','The Endless','Annihilation','Pure Absence','Unbecoming','That Which Was','Eternity','Nothingness','The Last Thought','The Final Quiet','What Remains','The Before','The Between','The After','Cessation']},
+];
+
+const TIERS_UWU=[
+  {name:'MANIFEWST', sub:'concrete entity owo',
+   words:['Cthuwhu','Nyawwathotep','Dawgon','Hastuw :3','Shub-Niguwatch','Azathoth owo','Yog-Sothoth bby','Da Deep Ones','Mi-Go uwu','Shoggy','Gug °~°','Nightgaunt uwu','Byakhee bby','Star-Spawn owo','Da Cowour Out of Space']},
+  {name:'TANGIBWLE', sub:'object or place uwu',
+   words:["W'wyeh",'Da Necwonomicon','Bwack Awtar','Sunken City uwu','Ewdwitch Artifact','Wituaw Circlwe bby','Fowbidden Wibrary','Bwood Moon owo','Cawved Idol uwu','Cursed Wighthouse :3','Da Yewwow Sign','Tainted Spwing bby','Ancient Monowith owo','Sacrificiaw Chambew uwu','Da Dweamwands Gate']},
+  {name:'WIMINAW',   sub:'event or state °~°',
+   words:['Awakening uwu','Descent into Madness owo','Initiation bby','Wevelation :3','Cowwuption','Obsession °~°','Fwacture owo','Twansfowmation uwu','Convewgence bby','Thweshold Cwossing','Da Fiwst Dweam :3','Dissowution owo','Summoning uwu','Possession bby','Da Bweaking Point >w<']},
+  {name:'ETHEREAW',  sub:'force or feeling ✦',
+   words:['Cosmic Dwead uwu','Inevitabiwity owo','Hungew Without Fowm :3','Siwence That Watches','Da Weight of Ages bby','Unwavewing owo','Wesonance uwu','Absence °~°','Void-Touch bby','Da Puwse owo','Wonging uwu','Wecuwsive Horror :3','Dissowution owo','Vibwation','Da Namewess Puww bby']},
+  {name:'VOID uwu',  sub:'pure abstraction ✦',
+   words:['Fowgetting uwu','Da Endless owo','Annihiwation :3','Puwe Absence bby','Unbecoming uwu','Dat Which Was °~°','Etewnity owo','Nothingness uwu','Da Last Thought :3','Da Final Quiet bby','What Wemains owo','Da Before uwu','Da Between °~°','Da After :3','Cessation uwu']},
+];
+
+// ── HOOKS (by tier of Element A, by modifier) ──
+// {A} = element A word, {B} = element B word
+const HOOKS = {
+  0: {
+    doom:[
+      '{A} manifests without warning — not gradually, as the old texts suggested, but all at once, displacing the air, the light, and the assumption that reality has rules.',
+      'Something wearing the name of {A} moves through the space where the investigators stand. It does not register their presence the way a predator notices prey — it registers them the way a storm notices a matchstick.',
+      '{A} has been here before. The investigators can tell because nothing grows in the shape left behind — and the shape is the shape of something that was never meant to exist at this scale.',
+      'The investigators hear {A} before they see it: a frequency below sound that vibrates in fillings, in marrow, in the oldest parts of the nervous system that predate language.',
+      'The oldest investigator freezes first. They have read enough to recognise what {A} means when it arrives like this — without ceremony, without warning, without mercy.',
+    ],
+    neutral:[
+      '{A} arrives at the threshold of perception — not quite visible, not quite absent, occupying some frequency of existence the investigators were not built to process.',
+      'The first sign of {A} is not visual. It is the quality of silence that precedes it: a silence that feels curated, intentional, aware.',
+      '{A} does not approach. It simply becomes relevant — as though it was always present and the investigators have only now developed the correct organ to perceive it.',
+      'There is a moment — brief, vertiginous — in which the investigators understand what {A} actually is. The moment passes. The understanding does not entirely.',
+      'Something the locals refuse to name turns out to be {A}, or a reflection of it, or the shadow it casts in dimensions the investigators cannot directly observe.',
+    ],
+    fate:[
+      '{A} has been waiting. Not with patience — patience implies the possibility of frustration — but with the absolute certainty of something that exists outside of time.',
+      'The investigators have been moving toward {A} since before the campaign began. Standing before it now, they understand that choice was always a more complicated thing than they assumed.',
+      '{A} reveals itself slowly, the way a coastline reveals itself through fog: not appearing so much as becoming legible.',
+      '{A} is not what the investigators expected. It is what they needed to find, which is a different and more terrible thing.',
+      'The encounter with {A} feels inevitable in retrospect — as though every prior session was a corridor that only ever led to this door.',
+    ],
+  },
+  1: {
+    doom:[
+      '{A} sits at the centre of the room like an accusation. Whatever it was made for, it was not made for anything that ends well.',
+      'The investigators find {A} where no one should have left it — unguarded, unlocked, and radiating something that makes the youngest of them begin, quietly, to weep.',
+      '{A} has already been activated. The investigators can tell because the air tastes of copper and static, and the walls are doing something walls should not do.',
+      'Someone has been studying {A} for a long time. The notes surrounding it are written in four different hands, each progressively less coherent than the last.',
+      '{A} is warm to the touch. It should not be warm. Nothing in this room has been warm for a very long time.',
+    ],
+    neutral:[
+      '{A} is not where the maps said it would be. It is here instead, and the investigators must decide what that means about the maps and about whoever drew them.',
+      'The investigators have seen illustrations of {A} in the forbidden texts. The illustrations, it turns out, were conservative.',
+      '{A} appears undisturbed. This is either reassuring or the most alarming thing the investigators have encountered today, and they are not yet sure which.',
+      '{A} changes the room it occupies. Not dramatically — but subtly, in ways the investigators will only recognise once they have left and had time to compare notes.',
+      'Whatever {A} was built to do, it is doing it now. The investigators are close enough to be affected, whether they understand the mechanism or not.',
+    ],
+    fate:[
+      '{A} has been preserved across centuries with a purpose. The investigators standing before it now are, all available evidence suggests, that purpose.',
+      'The investigators find {A} already open, already prepared, as though left for them specifically — which is impossible, and yet.',
+      '{A} recognises the investigators. This is not metaphor. Something in {A} orients toward them the moment they enter the room.',
+      'The inscription on {A} names the investigators. Not their current names — their true names, the ones they have not yet learned they have.',
+      '{A} is the answer to a question the investigators have not yet thought to ask. They will understand this later, probably too late for it to be useful.',
+    ],
+  },
+  2: {
+    doom:[
+      '{A} begins without any of them noticing. By the time they recognise what is happening, it has been happening for longer than they thought possible.',
+      'There is no clear moment when {A} starts — only the gradual realisation that they are already inside it, already past the point where they had choices.',
+      '{A} removes something from the investigators without their awareness. They will not discover what is missing until they reach for it.',
+      '{A} does not look like what they were warned it would look like. It looks like something ordinary. That is how they know it is serious.',
+      'The {A} happens to the most psychologically fragile investigator first. The others watch, not yet understanding that they are next in some order they have not yet determined.',
+    ],
+    neutral:[
+      '{A} is already underway when the investigators arrive — they have walked into the middle of something, and the middle is the worst position from which to understand anything.',
+      'The investigators have read about {A} in theory. Theory did not prepare them for the texture of it, the way it changes the temperature of a room.',
+      '{A} is happening to someone the investigators care about. Or to the space between people. Or to the concept of caring itself. The distinction matters and they must determine which it is.',
+      'There are signs that {A} has occurred here before. The investigators must decide whether knowing that is comforting or catastrophic.',
+      '{A} proceeds in stages. The investigators are skilled enough to recognise stage two. They are not yet certain how many stages there are.',
+    ],
+    fate:[
+      'The {A} is beautiful, in the way that very large and indifferent things are beautiful. The investigators cannot stop watching.',
+      '{A} is happening exactly as one of the investigators dreamed it would, several sessions ago. They said nothing at the time.',
+      'The investigators are the cause of {A}. This is not an accusation — it is simply a fact, and facts can be worked with.',
+      'Something is being born through {A}. The investigators must decide how they feel about being present for a birth when they do not know what species is arriving.',
+      '{A} will complete itself whether the investigators act or not. Their role is not prevention. They must determine what their role actually is.',
+    ],
+  },
+  3: {
+    doom:[
+      'The {A} reaches the investigators before anything visible does — moving through stone and skin alike, through the distance between synapses.',
+      '{A} is not something the investigators can point to. It is something they become aware they have been inside, the way one discovers one is in water.',
+      'The youngest investigator begins to describe experiencing {A} and cannot finish the sentence. Not because they lose consciousness — because they lose the words.',
+      '{A} does not hurt. This is, in context, the most frightening thing about it.',
+      '{A} compounds. Each investigator feels it separately, then all at once, then discovers that the separate version was actually worse.',
+    ],
+    neutral:[
+      '{A} moves through the investigators like weather, leaving each of them subtly different on the other side in ways they will spend weeks cataloguing.',
+      'There is no source for {A}. It is not radiating from anything. It simply is, distributed evenly, like air or gravity or debt.',
+      'The investigators disagree about whether {A} is present. The disagreement itself is a kind of data.',
+      '{A} has a texture. The investigators cannot agree on what the texture is. Each of them is, somehow, correct.',
+      'The investigators have been trained to name and categorise what they encounter. {A} resists categorisation without resisting anything.',
+    ],
+    fate:[
+      '{A} arrives like a recognition — not of something external but of something the investigators have been carrying without knowing its name.',
+      'The {A} passes through the investigators and leaves something behind. It will take time to determine what, and whether it is a gift.',
+      'One investigator begins to cry. They cannot explain it, except to say that {A} feels like finally understanding something they have always almost known.',
+      '{A} is the thing the campaign has been moving toward — not the villain, not the artefact, but this: this awareness, this opening, this shift.',
+      'The {A} does not threaten. It simply reveals. What it reveals is the investigators\' responsibility to deal with.',
+    ],
+  },
+  4: {
+    doom:[
+      '{A} is not an event. It is the space where events stop being possible. The investigators have walked into it before understanding what it was.',
+      'In the presence of {A}, one investigator discovers they cannot remember why anything matters. They are not distressed by this. That is the problem.',
+      '{A} removes something from the scene. Not an object — something more fundamental. The investigators can perceive the absence but cannot name what is absent.',
+      'The investigators encounter {A} and discover they have been changed already — that the change preceded the encounter, and the encounter is merely the notification.',
+      '{A} does not look like anything. The investigators understand it only through what it does to everything else in the room.',
+    ],
+    neutral:[
+      '{A} is the condition the investigators have been operating under since the beginning of the campaign. They are only now becoming aware of it.',
+      'There is a moment where {A} and the investigators occupy the same space, and during that moment the distinction between subject and object becomes briefly unclear.',
+      '{A} is what remains after everything else has been removed. The investigators are standing in it and must now decide what to do with that information.',
+      'The investigators find that {A} cannot be encountered so much as realised — a shift in perspective rather than a change in circumstance.',
+      '{A} communicates nothing. This is, the investigators slowly understand, itself a form of communication.',
+    ],
+    fate:[
+      '{A} is not the end — it is the condition that makes endings possible. The investigators are standing at the origin of something enormous.',
+      'The investigators pass through {A} and arrive somewhere else. Not spatially — but they have crossed something. A threshold. A limit. A prior definition of themselves.',
+      'One investigator says: "We\'ve been here before." They are wrong about the location and correct about everything else.',
+      '{A} holds the investigators for a moment outside of consequence — and in that moment, they see clearly what they are supposed to do.',
+      '{A} is what the investigators were always moving toward. Not as a destination — as a homecoming to a place they have never been.',
+    ],
+  },
+};
+
+// UWU HOOKS — same tier/modifier structure, different voice
+const HOOKS_UWU = {
+  0:{
+    doom:[
+      '{A} manifests without warning uwu — not gwadually, as da old texts suggested, but all at once, dispwacing da aiw and da wight and da assumption dat weality has wules owo.',
+      'Something weawing da name of {A} moves thwough da space whewe da investigators stand. It does not wegistar dem da way a pwedator notices pwey — it wegisters dem da way a storm notices a matchstick °~°.',
+      '{A} has been hewe before bby. Da investigators can tell because nothing gwows in da shape weft behind — and da shape is da shape of something dat was nevew meant to exist at dis scawe >///<.',
+      'Da investigators heaw {A} before dey see it: a fwequency bewow sound dat vibwates in mawwow, in da oldest pawts of da newvous system dat pwedate wanguage uwu.',
+      'Da oldest investigator fweezes fiwst owo. Dey have wead enough to wecognise what {A} means when it awwives wike dis — without cewemony, without wawning, without mewcy :3.',
+    ],
+    neutral:[
+      '{A} awwives at da thweshowd of pewception uwu — not quite visibwe, not quite absent, occupying some fwequency of existence da investigators wewe not buiwt to pwocess owo.',
+      'Da fiwst sign of {A} is not visuaw bby. It is da quawity of siwence dat pwecedes it: a siwence dat feews cuwated, intentionaw, awawe °~°.',
+      '{A} does not appwoach. It simpwy becomes wewevant — as dough it was awways pwesent and da investigators have onwy now devewoped da cowwect owgan to pewceive it uwu.',
+      'Dere is a moment — bwief, vewtigenous — in which da investigators undewstand what {A} actuawwy is owo. Da moment passes. Da undewstanding does not entiwewy :3.',
+      'Something da wocaws wefuse to name tuwns out to be {A}, ow a wefwection of it, ow da shadow it casts in dimensions da investigators cannot diwectwy obsewve bby uwu.',
+    ],
+    fate:[
+      '{A} has been waiting uwu. Not with patience — patience impwies da possibiwity of fwustwation — but with da absowute cewtainty of something dat exists outside of time ✦.',
+      'Da investigators have been moving toward {A} since befowe da campaign began owo. Standing befowe it now, dey undewstand dat choice was awways a mowe compwicated thing uwu.',
+      '{A} weveaws itsewf swowwy bby, da way a coastwine weveaws itsewf thwough fog: not appeawing so much as becoming wegibbwe :3.',
+      '{A} is not what da investigators expected owo. It is what dey needed to find, which is a diffewent and mowe tewwibwe thing uwu ✦.',
+      'Da encounter with {A} feews inevitabwe in wetwospect bby — as dough evewy pwiow session was a cowwidow dat onwy evew wed to dis doow °~°.',
+    ],
+  },
+  1:{doom:['','','','',''],neutral:['','','','',''],fate:['','','','','']},
+  2:{doom:['','','','',''],neutral:['','','','',''],fate:['','','','','']},
+  3:{doom:['','','','',''],neutral:['','','','',''],fate:['','','','','']},
+  4:{doom:['','','','',''],neutral:['','','','',''],fate:['','','','','']},
+};
+// Fill remaining UWU tiers with auto-uwu (applied at render time)
+// We'll uwuify the eldritch hooks for tiers 1-4 dynamically
+
+// ── REVELATIONS (by tier distance relationship) ──
+// Relationship types: mirror(0), adjacent(1), contrast(2), paradox(3+)
+const REVELATIONS = {
+  mirror:[
+    'The relationship between {A} and {B} is not coincidence — it is grammar. Together they form a sentence the universe has been trying to say for longer than memory allows.',
+    '{A} and {B} are two names for the same thing, encountered from different angles. The investigators are the angle from which both can be seen simultaneously.',
+    'The investigators realise that {A} has always implied {B} — that one cannot exist in this context without the other, and that they have walked into both at once.',
+    '{A} and {B} are in conversation. The investigators have interrupted it. The conversation has paused to notice them.',
+    '{A} requires {B} to be legible. Separately, each would be survivable. Together, they form something the investigators do not have a word for.',
+    'In this space, {A} and {B} amplify each other. Whatever this was before the investigators arrived, it is significantly more now.',
+  ],
+  adjacent:[
+    '{B} is what {A} leaves behind — or what {A} is moving toward. The investigators have arrived at the hinge between two states.',
+    '{A} is the surface. {B} is what {A} contains — the investigators have been looking at the vessel without seeing what it holds.',
+    '{B} is how {A} makes itself known to things built at the investigators\' scale. The translation is imperfect. Something is always lost in it.',
+    '{A} is reaching toward {B}, or {B} is the direction {A} falls when nothing stops it. The investigators are standing in the path of this trajectory.',
+    'The relationship between {A} and {B} is temporal: one precedes the other, and the investigators are standing at the seam between them.',
+    'What connects {A} to {B} is a process the investigators have stumbled into at an inopportune moment — neither beginning nor end, but the most dangerous middle.',
+  ],
+  contrast:[
+    '{A} and {B} should not be in proximity. The friction between them is the encounter the investigators are actually having.',
+    'The investigators are standing at the boundary between {A} and {B} — a boundary that exists because the universe requires certain things to stay separate. That requirement is being tested.',
+    '{A} is the argument. {B} is the counterargument. The investigators are the evidence both sides are simultaneously using.',
+    'Something has forced {A} and {B} into the same space. Whatever forced them has since departed, leaving the investigators to manage the collision.',
+    'The tension between {A} and {B} is not metaphorical. It has physical properties. The investigators can feel it in the pressure behind their eyes.',
+    '{B} exists in relation to {A} the way a wound exists in relation to what caused it — they define each other, and neither is comprehensible in isolation.',
+  ],
+  paradox:[
+    '{A} and {B} cannot coexist under any logical framework the investigators possess. They are coexisting. The investigators must update their frameworks or lose their minds.',
+    'The investigators understand {A}. They understand {B}. They do not understand how the same space contains both — and yet it does, and they are standing inside it.',
+    '{B} is what {A} looks like from a sufficient distance. The investigators are at neither extreme — they are at the exact point where the paradox is most visible and most dangerous.',
+    'In the presence of both {A} and {B}, the investigators discover that contradictions are not resolved — they are inhabited. They are inside one now.',
+    'Something has used {A} to anchor {B} here, or used {B} to call {A} through. The mechanism is impossible. The result is standing in front of the investigators regardless.',
+    '{A} should dissolve {B}. {B} should be impossible in the presence of {A}. Neither has occurred. A third option — one not in any of the texts — appears to be in effect.',
+  ],
+};
+
+const REVELATIONS_UWU = {
+  mirror:[
+    'Da wewationship between {A} and {B} is not coincidence uwu — it is gwammaw. Togethew dey fowm a sentence da universe has been twying to say for wongew dan memowy awwows owo.',
+    '{A} and {B} awe two names for da same thing bby, encountewed fwom diffewent angwes. Da investigators awe da angwe fwom which bof can be seen simuwwtaneouswy :3.',
+    'Da investigators weawise dat {A} has awways impwied {B} uwu — dat one cannot exist in dis context without da othew owo. Dey have wawked into bof at once ✦.',
+    '{A} and {B} awe in convewsation °~°. Da investigators have intewwupted it. Da convewsation has paused to notice dem bby.',
+    '{A} wequiwes {B} to be wegibbwe uwu. Sepawatewy, each wouwd be suwvivabwe. Togethew, dey fowm something da investigators do not have a wowd for >///<.',
+    'In dis space, {A} and {B} ampwify each othew owo. Whatevew dis was before da investigators awwived, it is significantwy mowe now uwu bby ✦.',
+  ],
+  adjacent:[
+    '{B} is what {A} weaves behind — ow what {A} is moving toward uwu. Da investigators have awwived at da hinge between two states owo.',
+    '{A} is da suwface bby. {B} is what {A} contains — da investigators have been wooking at da vessel without seeing what it howds °~°.',
+    '{B} is how {A} makes itsewf known to things buiwt at da investigators\' scawe uwu. Da twanswation is impewfect. Something is awways wost in it owo.',
+    '{A} is weaching toward {B} owo, ow {B} is da diwection {A} fawws when nothing stops it. Da investigators awe standing in da path of dis twajectorwy bby.',
+    'Da wewationship between {A} and {B} is tempowaw uwu: one pwecedes da othew, and da investigators awe standing at da seam between dem :3.',
+    'What connects {A} to {B} is a pwocess da investigators have stumbled into at an inoppowtune moment owo — neithew beginning nuw end, but da most dangerous middwe uwu.',
+  ],
+  contrast:[
+    '{A} and {B} should not be in pwoximity uwu. Da fwiction between dem is da encounter da investigators awe actuawwy having owo.',
+    'Da investigators awe standing at da boundawy between {A} and {B} bby — a boundawy dat exists because da universe wequiwes cewtain things to stay sepawate. Dat wequiwement is being tested °~°.',
+    '{A} is da awgument owo. {B} is da countewawgument. Da investigators awe da evidence bof sides awe simuwwtaneouswy using uwu.',
+    'Something has fowced {A} and {B} into da same space bby. Whatevew fowced dem has since depawted, weaving da investigators to manage da cowwision uwu ✦.',
+    'Da tension between {A} and {B} is not metaphowicaw uwu. It has physicaw pwopewties owo. Da investigators can feew it in da pwessure behind deir eyes :3.',
+    '{B} exists in wewation to {A} da way a wound exists in wewation to what caused it bby — dey define each othew uwu, and neithew is compwehensibwe in isowation °~°.',
+  ],
+  paradox:[
+    '{A} and {B} cannot coexist undew any wogicaw fwamewowk da investigators possess uwu. Dey awe coexisting owo. Da investigators must update deir fwamewowks ow wose deir minds bby.',
+    'Da investigators undewstand {A} owo. Dey undewstand {B} uwu. Dey do not undewstand how da same space contains bof — and yet it does, and dey awe standing inside it :3.',
+    '{B} is what {A} wooks wike fwom a sufficient distance bby uwu. Da investigators awe at da exact point whewe da pawadox is most visibwe and most dangewous owo.',
+    'In da pwesence of bof {A} and {B}, da investigators discovew dat contwadictions awe not wesowved — dey awe inhabited owo. Dey awe inside one now uwu >///<.',
+    'Something has used {A} to anchow {B} hewe bby, ow used {B} to caww {A} thwough owo. Da mechanism is impossibwe. Da wesuwt is standing in fwont of da investigators anyway uwu.',
+    '{A} should dissowve {B} owo. {B} should be impossibwe in da pwesence of {A} uwu. Neithew has occuwwed. A thiwd option — one not in any of da texts — appeaws to be in effect bby °~°.',
+  ],
+};
+
+// ── BRIDGES (element C woven in) ──
+const BRIDGES=[
+  'Threading through all of this is {C} — not as context but as active pressure, reshaping everything the investigators thought they understood about the encounter.',
+  'The presence of {C} complicates the calculus: it is neither ally nor obstacle, but a third force that the investigators must account for before they can act.',
+  '{C} underlies the entire scene. Remove it and the encounter would be comprehensible. It cannot be removed.',
+  'Beneath the surface of the encounter, {C} moves like a current. The investigators can feel it without being able to point to its source.',
+  '{C} is why none of the standard approaches apply here. It has changed the rules of this particular space in ways that will take time to fully map.',
+  'What connects everything in this scene — {A}, {B}, and the investigators themselves — is {C}. It is the grammar that holds the sentence together.',
+];
+
+const BRIDGES_UWU=[
+  'Thweading thwough aww of dis is {C} uwu — not as context but as active pwessure, weshaping evewything da investigators dought dey undewstood owo.',
+  'Da pwesence of {C} compwicates da calcuwus bby: it is neithew awwy nuw obstacwe, but a thiwd fowce dat da investigators must account fow :3.',
+  '{C} undewwies da entiwe scene uwu. Wemove it and da encounter wouwd be compwehensibwe owo. It cannot be wemoved °~°.',
+  'Beneath da suwface of da encounter, {C} moves wike a cuwwent bby. Da investigators can feew it without being abwe to point to its souwce uwu.',
+  '{C} is why none of da standawd appwoaches appwy hewe owo. It has changed da wuwes of dis pawticuwaw space uwu ✦.',
+  'What connects evewything in dis scene — {A}, {B}, and da investigators demsewves — is {C} bby. It is da gwammaw dat howds da sentence togethew uwu °~°.',
+];
+
+// ── CONSEQUENCES (by modifier) ──
+const CONSEQUENCES={
+  doom:[
+    'The investigators will leave this place with less than they arrived with. Not objects — something less replaceable, and more useful.',
+    'One investigator will be permanently changed by this encounter. They will not know which one until they reach for something and find it gone.',
+    'The encounter ends. The cost does not. Whatever was set in motion here will find its way to the investigators wherever they go next.',
+    'There is a way to survive this. It involves a sacrifice the investigators have not yet decided they are willing to make.',
+    'Someone will not remember this clearly. The memory will not be lost — it will be replaced with something that serves other purposes than truth.',
+    'The investigators walk away intact. Something follows them. It is patient. It has nowhere else to be.',
+    'The cost of intervention is not obvious. The cost of inaction is not obvious either. Both costs are real and both are already accumulating.',
+    'The investigators can stop what is happening. The stopping will cost them something they have not yet discovered they have.',
+  ],
+  neutral:[
+    'The investigators have a choice. Both options are legitimate. Neither is safe, and neither can be undone.',
+    'What the investigators do next will matter — not in an obvious way, but in the way that a dropped stone matters to the surface of a still lake.',
+    'The encounter offers something. Taking it has implications. Leaving it has different implications. The investigators must decide which set they can live with.',
+    'Something has changed in the relationship between the investigators and whatever is driving this campaign. They will feel the shift before they understand it.',
+    'The investigators can ask one question. The answer will be true. They must choose the question with care.',
+    'Nothing is decided yet. The investigators have time — not much, but some. What they do with it is the real encounter.',
+    'The investigators have been seen. Not threatened — seen. Whatever noticed them has made a note. Whether the note is significant remains unclear.',
+    'There is information available here that will be unavailable anywhere else. The investigators may or may not want it once they have it.',
+  ],
+  fate:[
+    'The investigators have been changed by this — not damaged, but reoriented. They now face a direction they could not have faced before.',
+    'Something that was coming for the investigators has, through this encounter, become something they can move toward instead. The difference is everything.',
+    'The investigators will understand, some sessions from now, that this was the moment everything became possible. Right now they understand only that something has shifted.',
+    'One investigator is ready for something they were not ready for before entering this space. They do not yet know what it is.',
+    'The encounter leaves a door open. The investigators did not open it. They do not have to walk through. But they can, and they will know it is there.',
+    'What the investigators have witnessed here will become the foundation of everything they do next. Not a burden — a map.',
+    'The campaign changes here. Not ends — changes. What was one story has become another. The investigators are the hinge.',
+    'Something has recognised the investigators as significant. Not as threats or prey — as necessary. That is a different and more interesting kind of danger.',
+  ],
+};
+
+const CONSEQUENCES_UWU={
+  doom:[
+    'Da investigators will weave dis place with wess dan dey awwived with uwu. Not objects — something wess wepwaceabwe, and mowe usefuw owo.',
+    'One investigator will be pewmanentwy changed by dis encounter bby. Dey will not know which one untiw dey weach for something and find it gone >///<.',
+    'Da encounter ends owo. Da cost does not uwu. Whatevew was set in motion hewe will find its way to da investigators wherevew dey go next °~°.',
+    'Dere is a way to suwvive dis bby. It invowves a sacwifice da investigators have not yet decided dey awe willing to make uwu.',
+    'Someone will not wemembew dis clearly owo. Da memowy will not be wost — it will be wepwaced with something dat sewves othew puwposes dan twuth uwu.',
+    'Da investigators wawk away intact bby. Something fowwows dem owo. It is patient uwu. It has nowhewew ewse to be °~°.',
+    'Da cost of intewvention is not obvious uwu. Da cost of inaction is not obvious eithew owo. Bof costs awe weaw and bof awe awweady accumuwating bby.',
+    'Da investigators can stop what is happening uwu. Da stopping will cost dem something dey have not yet discovewed dey have >///<.',
+  ],
+  neutral:[
+    'Da investigators have a choice uwu. Bof options awe wegitimate owo. Neithew is safe, and neithew can be undone bby.',
+    'What da investigators do next will mattew uwu — not in an obvious way, but in da way dat a dwopped stone mattews to da suwface of a still wake owo.',
+    'Da encounter offews something bby. Taking it has impwications uwu. Weaving it has diffewent impwications owo. Da investigators must decide :3.',
+    'Something has changed in da wewationship between da investigators and whatevew is dwiving dis campaign uwu. Dey will feew da shift befowe dey undewstand it °~°.',
+    'Da investigators can ask one question uwu. Da answew will be twue owo. Dey must choose da question with cawe bby ✦.',
+    'Nothing is decided yet uwu. Da investigators have time owo — not much, but some. What dey do with it is da weal encounter :3.',
+    'Da investigators have been seen bby. Not thweatened — seen uwu. Whatevew noticed dem has made a note owo. Whethew da note is significant wemains uncleaw °~°.',
+    'Dere is infowmation avaiwabwe hewe dat will be unavaiwabbe anywhewew ewse uwu. Da investigators may ow may not want it once dey have it owo bby.',
+  ],
+  fate:[
+    'Da investigators have been changed by dis uwu — not damaged, but weowientated owo. Dey now face a diwection dey could not have faced befowe ✦.',
+    'Something dat was coming fow da investigators has, thwough dis encounter, become something dey can move toward instead bby uwu. Da diffewence is evewything °~°.',
+    'Da investigators will undewstand, some sessions fwom now, dat dis was da moment evewything became possibwe uwu. Wight now dey undewstand onwy dat something has shifted owo.',
+    'One investigator is weady fow something dey wewe not weady fow befowe entewing dis space bby. Dey do not yet know what it is uwu ✦.',
+    'Da encounter weaves a doow open uwu. Da investigators did not open it owo. Dey do not have to wawk thwough. But dey can, and dey will know it is dere bby.',
+    'What da investigators have witnessed hewe will become da foundation of evewything dey do next uwu. Not a buwden — a map owo ✦.',
+    'Da campaign changes hewe bby. Not ends — changes uwu. What was one stowy has become anothew owo. Da investigators awe da hinge °~°.',
+    'Something has wecognised da investigators as significant bby. Not as thweats ow pwey — as necessawy uwu. Dat is a diffewent and mowe intewesting kind of dangew owo ✦.',
+  ],
+};
+
+// ── EXTENDED CODA (PROPHECY length only) ──
+const CODAS={
+  doom:[
+    'This will not be the last time.',
+    'The investigators do not have as much time as they think.',
+    'Something has made a note of their faces.',
+    'The door behind them is no longer where it was.',
+    'They have been counted.',
+  ],
+  neutral:[
+    'The shape of what comes next has changed.',
+    'There are now more possibilities than there were this morning.',
+    'A question has been answered that the investigators did not know they were asking.',
+    'The map is different now. Navigating it will require new instruments.',
+    'Something has been set in motion that cannot easily be reversed.',
+  ],
+  fate:[
+    'They were always going to end up here.',
+    'What comes next will make sense, eventually.',
+    'The investigators are exactly where they need to be.',
+    'The thread leads forward.',
+    'This was the beginning of the part that matters.',
+  ],
+};
+const CODAS_UWU={
+  doom:['Dis will not be da wast time owo.','Da investigators do not have as much time as dey think uwu.','Something has made a note of deir faces bby °~°.','Da doow behind dem is no wongew whewe it was owo.','Dey have been counted uwu >///<.'],
+  neutral:['Da shape of what comes next has changed uwu.','Dere awe now mowe possibiwities dan dere wewe dis mowning owo bby.','A question has been answewed dat da investigators did not know dey wewe asking uwu :3.','Da map is diffewent now owo. Navigating it will wequiwe new instwuments uwu.','Something has been set in motion dat cannot easiwy be wevewsed bby °~°.'],
+  fate:['Dey wewe awways going to end up hewe uwu ✦.','What comes next will make sense, eventuawwy owo bby.','Da investigators awe exactwy whewe dey need to be uwu °~°.','Da thwead weads fowwawd ✦.','Dis was da beginning of da pawt dat mattews uwu bby owo ✦.'],
+};
+
+// ══════════════════════════════════════════
+// GENERATION ALGORITHM
+// ══════════════════════════════════════════
+function getRelType(t1,t2){
+  let d=Math.abs(t1-t2);
+  if(d===0) return 'mirror';
+  if(d===1) return 'adjacent';
+  if(d===2) return 'contrast';
+  return 'paradox';
+}
+
+function fill(template,words){
+  let s=template;
+  Object.entries(words).forEach(([k,v])=>{ s=s.split(`{${k}}`).join(v); });
+  return s;
+}
+
+function generateEncounter(){
+  let activeSlots = thirdActive ? slots : slots.slice(0,2);
+  let isUwu = filterMode==='uwu';
+  let t = isUwu ? TIERS_UWU : TIERS;
+  let wds = activeSlots.map(s=>s.word);
+  let tiers = activeSlots.map(s=>s.tierIdx);
+  let mod = curMod;
+
+  let words = {A: wds[0], B: wds[1]};
+  if(wds[2]) words.C = wds[2];
+
+  // Pick pools
+  let hookPool = (isUwu && HOOKS_UWU[tiers[0]][mod][0])
+    ? HOOKS_UWU[tiers[0]][mod]
+    : HOOKS[tiers[0]][mod];
+  let relType = getRelType(tiers[0], tiers[1]);
+  let revPool = isUwu ? REVELATIONS_UWU[relType] : REVELATIONS[relType];
+  let bridgePool = isUwu ? BRIDGES_UWU : BRIDGES;
+  let consPool = isUwu ? CONSEQUENCES_UWU[mod] : CONSEQUENCES[mod];
+  let codaPool = isUwu ? CODAS_UWU[mod] : CODAS[mod];
+
+  // Build layers
+  let hook     = fill(pick(hookPool), words);
+  let rev      = fill(pick(revPool), words);
+  let bridge   = wds[2] ? fill(pick(bridgePool), words) : '';
+  let conseq   = fill(pick(consPool), words);
+  let coda     = fill(pick(codaPool), words);
+
+  // Compose by length
+  let parts=[];
+  if(curLen==='spark'){
+    parts=[hook];
+  } else if(curLen==='echo'){
+    parts=[hook, rev];
+  } else if(curLen==='omen'){
+    parts=[hook, rev];
+    if(bridge) parts.push(bridge);
+    parts.push(conseq);
+  } else { // prophecy
+    parts=[hook, rev];
+    if(bridge) parts.push(bridge);
+    parts.push(conseq, coda);
+  }
+
+  return parts.join('\n\n');
+}
+
+// ══════════════════════════════════════════
+// SLOT STATE + UI
+// ══════════════════════════════════════════
+let slots=[
+  {specValue:0.0, tierIdx:0, word:null},
+  {specValue:1.0, tierIdx:4, word:null},
+];
+let thirdActive=false, curMod='neutral', curLen='echo', filterMode='eldritch';
+let rollCount=0, curOutput='';
+
+function getTierPool(ti){ return filterMode==='uwu'?TIERS_UWU[ti]:TIERS[ti]; }
+function getTierIdx(v){ return Math.min(4,Math.floor(v*5)); }
+function pickWord(ti){ return pick(getTierPool(ti).words); }
+
+function buildSlots(){
+  let cont=S('el-container'); cont.innerHTML='';
+  let active = thirdActive ? slots : slots.slice(0,2);
+  active.forEach((slot,i)=>{
+    if(!slot.word) slot.word=pickWord(slot.tierIdx);
+    let pool=getTierPool(slot.tierIdx);
+    let div=document.createElement('div'); div.className='element-slot';
+    div.innerHTML=`
+      <div class="el-header">
+        <span class="el-label">ELEMENT ${['A','B','C'][i]}</span>
+        <span class="el-tier" id="etier-${i}">${pool.name} · ${pool.sub}</span>
+      </div>
+      <div class="el-word" id="eword-${i}">${slot.word}<span class="rr">↻ tap</span></div>
+      <div class="spec-wrap">
+        <div class="spec-labels"><span>MANIFEST</span><span>TANGIBLE</span><span>LIMINAL</span><span>ETHEREAL</span><span>VOID</span></div>
+        <div class="spec-track" id="etrack-${i}">
+          <div class="spec-fill" id="efill-${i}" style="width:${slot.specValue*100}%"></div>
+          <div class="spec-thumb" id="ethumb-${i}" style="left:${slot.specValue*100}%"></div>
+        </div>
+      </div>`;
+    cont.appendChild(div);
+    S(`eword-${i}`).addEventListener('click',()=>reroll(i));
+    initSlider(i);
+  });
+}
+
+function reroll(i){
+  slots[i].word=pickWord(slots[i].tierIdx);
+  let el=S(`eword-${i}`);
+  if(el){ el.style.opacity='0'; setTimeout(()=>{ el.innerHTML=`${slots[i].word}<span class="rr">↻ tap</span>`; el.style.opacity='1'; el.style.transition='opacity 0.2s'; },140); }
+}
+
+function initSlider(i){
+  let track=S(`etrack-${i}`); if(!track) return;
+  let drag=false;
+  function setV(cx){
+    let r=track.getBoundingClientRect(), v=Math.max(0,Math.min(1,(cx-r.left)/r.width));
+    slots[i].specValue=v;
+    let newT=getTierIdx(v);
+    if(newT!==slots[i].tierIdx){
+      slots[i].tierIdx=newT; slots[i].word=pickWord(newT);
+      let pool=getTierPool(newT);
+      let te=S(`etier-${i}`); if(te) te.textContent=`${pool.name} · ${pool.sub}`;
+      let we=S(`eword-${i}`); if(we) we.innerHTML=`${slots[i].word}<span class="rr">↻ tap</span>`;
+    }
+    let fi=S(`efill-${i}`); if(fi) fi.style.width=(v*100)+'%';
+    let th=S(`ethumb-${i}`); if(th) th.style.left=(v*100)+'%';
+  }
+  track.addEventListener('mousedown',e=>{drag=true;setV(e.clientX);e.preventDefault();});
+  window.addEventListener('mousemove',e=>{if(drag)setV(e.clientX);});
+  window.addEventListener('mouseup',()=>drag=false);
+  track.addEventListener('touchstart',e=>{drag=true;setV(e.touches[0].clientX);},{passive:true});
+  track.addEventListener('touchmove',e=>{if(drag)setV(e.touches[0].clientX);},{passive:true});
+  track.addEventListener('touchend',()=>drag=false,{passive:true});
+}
+
+function toggleThird(){
+  thirdActive=!thirdActive;
+  if(thirdActive && slots.length<3) slots.push({specValue:0.5,tierIdx:2,word:null});
+  El('add-third-btn',e=>e.textContent=thirdActive?'− REMOVE THIRD ELEMENT':'+ ADD THIRD ELEMENT');
+  buildSlots();
+}
+
+function setMod(m){
+  curMod=m;
+  ['doom','neutral','fate'].forEach(x=>El('mbtn-'+x,e=>e.classList.toggle('active',x===m)));
+}
+
+function setLen(l){
+  curLen=l;
+  ['spark','echo','omen','prophecy'].forEach(x=>El('lb-'+x,e=>e.classList.toggle('active',x===l)));
+}
+
+// ══════════════════════════════════════════
+// CAST
+// ══════════════════════════════════════════
+function castEncounter(){
+  // Reroll all words
+  slots.forEach((s,i)=>{ if(i===2&&!thirdActive)return; s.word=pickWord(s.tierIdx); });
+  buildSlots();
+
+  rollCount++;
+  updateFooter();
+  fireWoosh(filterMode);
+  if(filterMode==='uwu') spawnSparkles();
+  for(let i=0;i<4;i++) setTimeout(()=>bloom(),i*75);
+
+  let text=generateEncounter();
+  curOutput=text;
+
+  // Build tags
+  let activeSl=thirdActive?slots:slots.slice(0,2);
+  let tags=S('out-tags');
+  if(tags){
+    tags.classList.remove('show');
+    let isU=filterMode==='uwu';
+    tags.innerHTML=activeSl.map((s,i)=>`<span class="out-tag">${(isU?TIERS_UWU:TIERS)[s.tierIdx].name}: ${s.word}</span>`).join('')
+      +`<span class="out-tag">${curMod.toUpperCase()}</span>`
+      +`<span class="out-tag">${curLen.toUpperCase()}</span>`
+      +(isU?'<span class="out-tag">UWU</span>':'');
+    setTimeout(()=>tags.classList.add('show'),200);
+  }
+
+  // Show output
+  let idle=S('out-idle'); if(idle) idle.style.display='none';
+  let out=S('out-text');
+  if(!out) return;
+  out.classList.remove('show','glitching');
+  out.textContent=''; out.setAttribute('data-text','');
+  out.classList.add('show');
+
+  // Typewriter
+  let chars=text.split(''), idx=0;
+  let cursor='▋';
+  let ti=setInterval(()=>{
+    if(idx>=chars.length){
+      clearInterval(ti);
+      out.textContent=text;
+      out.setAttribute('data-text',text);
+      setTimeout(()=>out.classList.add('glitching'),350);
+      out.scrollIntoView({behavior:'smooth',block:'nearest'});
+      return;
+    }
+    out.textContent=text.slice(0,idx+1)+cursor;
+    idx++;
+  },16);
+}
+
+function copyOut(){
+  if(!curOutput) return;
+  navigator.clipboard.writeText(curOutput).then(()=>{
+    El('copy-btn',e=>{e.textContent='✓ COPIED';e.classList.add('copied');});
+    setTimeout(()=>El('copy-btn',e=>{e.textContent='⎘ COPY';e.classList.remove('copied');}),1800);
+  }).catch(()=>{});
+}
+
+function toggleFilter(){
+  filterMode=filterMode==='eldritch'?'uwu':'eldritch';
+  if(filterMode==='uwu') spawnSparkles();
+  fireWoosh(filterMode);
+  // Rebuild slots with new word pools
+  slots.forEach(s=>{ s.word=pickWord(s.tierIdx); });
+  buildSlots();
+}
+
+// ══════════════════════════════════════════
+// BOOT
+// ══════════════════════════════════════════
+const BOOTLINES=[
+  '> VOID ENCOUNTER v∅.2 · OFFLINE',
+  '> Spectrum tables........ LOADED',
+  '> Text engine............ ARMED',
+  '> Combination logic...... READY',
+  '> API dependency......... NONE',
+  '> UWU layer.............. ONLINE',
+  '> NOTE: runs fully offline.',
+  '>       no connection required.',
+  '> Configure. Generate.',
+];
+function runBoot(){
+  let el=S('btext'),delay=0;
+  BOOTLINES.forEach((line,i)=>{
+    delay+=i===0?300:145;
+    setTimeout(()=>{
+      let d=document.createElement('div');d.className='bline';
+      if(i>=5&&i<=7) d.style.color='rgba(0,255,65,0.8)';
+      d.textContent=line;el.appendChild(d);
+    },delay);
+  });
+}
+function activate(){
+  S('boot').classList.add('hidden');
+  setTimeout(()=>{S('boot').style.display='none';S('app').classList.add('visible');initAll();},700);
+}
+
+// ══════════════════════════════════════════
+// TIMER + FOOTER
+// ══════════════════════════════════════════
+let sessStart;
+function startTimer(){
+  sessStart=Date.now();
+  setInterval(()=>{
+    let s=Math.floor((Date.now()-sessStart)/1000);
+    El('stime',e=>e.textContent=[Math.floor(s/3600),Math.floor((s%3600)/60),s%60].map(n=>String(n).padStart(2,'0')).join(':'));
+  },1000);
+}
+function updateFooter(){ El('ftval',e=>e.textContent=`rolls=${rollCount.toString().padStart(4,'0')}`); }
+
+// ══════════════════════════════════════════
+// WOOSH + SPARKLES
+// ══════════════════════════════════════════
+function fireWoosh(mode){
+  let ov=S('woosh');ov.innerHTML='';
+  let cx=innerWidth/2,cy=innerHeight/2,maxR=Math.max(cx,cy)*1.5,count=mode==='uwu'?11:8;
+  for(let i=0;i<count;i++){
+    let ring=document.createElement('div');ring.className='wring';
+    let col=mode==='uwu'?lerpR(0.07+i*0.07):lerpR(RT*0.38+i*0.14),sz=12+i*5;
+    ring.style.cssText=`left:${cx-sz/2}px;top:${cy-sz/2}px;width:${sz}px;height:${sz}px;border-color:${rgb(col)};box-shadow:0 0 14px ${rgb(col,0.6)};`;
+    ov.appendChild(ring);
+    let d=i*44,dur=640+i*50;
+    setTimeout(()=>{ring.style.transition=`transform ${dur}ms cubic-bezier(0.1,0.9,0.3,1),opacity ${dur}ms ease-out`;ring.style.transform=`scale(${maxR*(0.26+i*0.1)/(sz/2)})`;ring.style.opacity='0';},d);
+    setTimeout(()=>ring.remove(),d+dur+100);
+  }
+  if(mode==='uwu') for(let i=0;i<4;i++) setTimeout(()=>bloom(),i*80);
+}
+
+const SPS=['✦','♡','˚','uwu','owo','°~°',':3','✧','>///<','˙˘˙','꒷','✿','❀','(≧▽≦)','˚♡','bby','˶ᵔᵕᵔ˶','˘ᵕ˘','꒰✦꒱','∿'];
+function spawnSparkles(){
+  let n=7+Math.floor(Math.random()*7);
+  for(let i=0;i<n;i++){
+    setTimeout(()=>{
+      let el=document.createElement('div');el.className='uwusp';
+      el.textContent=pick(SPS);
+      let col=lerpR(0.05+Math.random()*0.25);
+      el.style.cssText=`color:${rgb(col)};text-shadow:0 0 8px ${rgb(col,0.7)};font-size:${0.7+Math.random()*0.8}rem;left:${5+Math.random()*90}%;bottom:${10+Math.random()*60}%;`;
+      document.body.appendChild(el);setTimeout(()=>el.remove(),1700);
+    },i*90);
+  }
+}
+
+// ══════════════════════════════════════════
+// MAIN LOOP + INIT
+// ══════════════════════════════════════════
+function mainLoop(){requestAnimationFrame(mainLoop);updateTheme();renderPlasma();}
+function initAll(){startTimer();initPlasma();buildSlots();mainLoop();}
+runBoot();
+</script>
+</body>
+</html>
