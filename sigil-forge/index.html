@@ -37,6 +37,7 @@ body::after {
   margin-top:2rem; padding:0.9rem 2.2rem; background:transparent;
   font-family:'VT323',monospace; font-size:1.7rem; letter-spacing:4px;
   cursor:pointer; opacity:0; animation:brev 0.3s 3s forwards; transition:all 0.2s;
+  color:rgba(0,255,65,0.9); border:1px solid rgba(0,255,65,0.6);
 }
 
 /* APP */
@@ -70,8 +71,8 @@ body::after {
 }
 .mod:last-child { border-bottom:none; }
 .mlbl { position:absolute; top:0.35rem; left:0.65rem; font-size:0.55rem; letter-spacing:2px; z-index:10; opacity:0.5; pointer-events:none; }
-.mid  { position:absolute; top:0.35rem; right:0.65rem; font-size:0.55rem; z-index:10; opacity:0.3; pointer-events:none; }
-.mod::before,.mod::after { content:''; position:absolute; width:10px; height:10px; border-style:solid; opacity:0.3; z-index:5; pointer-events:none; }
+.mid  { position:absolute; top:0.35rem; right:0.65rem; font-size:0.55rem; z-index:10; opacity:0.55; pointer-events:none; }
+.mod::before,.mod::after { content:''; position:absolute; width:10px; height:10px; border-style:solid; opacity:0.45; z-index:5; pointer-events:none; }
 .mod::before { top:3px; left:3px; border-width:1px 0 0 1px; }
 .mod::after  { bottom:3px; right:3px; border-width:0 1px 1px 0; }
 
@@ -90,25 +91,31 @@ body::after {
   display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.6rem;
   transition:opacity 0.5s;
 }
-.hint-sym { font-family:'VT323',monospace; font-size:2.8rem; opacity:0.12; }
-.hint-txt { font-size:0.58rem; letter-spacing:3px; opacity:0.18; text-align:center; line-height:2.1; }
+.hint-sym { font-family:'VT323',monospace; font-size:2.8rem; opacity:0.22; }
+.hint-txt { font-size:0.58rem; letter-spacing:3px; opacity:0.4; text-align:center; line-height:2.1; }
 
 #inst-wrap { position:absolute; bottom:0; left:0; right:0; z-index:6; height:3px; background:rgba(255,255,255,0.03); }
 #inst-fill  { height:100%; width:0%; }
 
 /* MOD 2: READING */
-#rmod { flex:1.1; display:flex; flex-direction:column; }
+#rmod { flex:1.1; display:flex; flex-direction:column; overflow:visible; }
 
 .reading-body {
-  flex:1; display:flex; align-items:center; justify-content:center;
-  padding:1.2rem 1.1rem 0.4rem; position:relative; overflow:hidden;
+  flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
+  padding:1.2rem 1.1rem 0.4rem; position:relative;
+  overflow-y:auto; overflow-x:hidden;
+  touch-action:pan-y; -webkit-overflow-scrolling:touch;
 }
+
+.reading-body::-webkit-scrollbar { width:2px; }
+.reading-body::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.12); border-radius:1px; }
 
 .rtext {
   font-family:'VT323',monospace; font-size:1.15rem;
   letter-spacing:0.12em; line-height:1.55; text-align:center;
   white-space:pre-line; z-index:2; position:relative;
   opacity:0; transition:opacity 0.5s;
+  padding-bottom:0.5rem;
 }
 .rtext.show { opacity:1; }
 .rtext::before,.rtext::after {
@@ -122,7 +129,7 @@ body::after {
 @keyframes ga { 0%,90%,100%{transform:none;} 91%{transform:translate(-3px,0) skewX(-2deg);} 94%{transform:translate(2px,0);} }
 @keyframes gb { 0%,86%,100%{transform:none;} 87%{transform:translate(4px,0) skewX(2deg);} 91%{transform:translate(-2px,0);} }
 
-.ridle { font-size:0.58rem; letter-spacing:2.5px; opacity:0.2; text-align:center; line-height:2; }
+.ridle { font-size:0.58rem; letter-spacing:2.5px; opacity:0.42; text-align:center; line-height:2; }
 
 #crackle-canvas { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:1; opacity:0.45; }
 
@@ -149,12 +156,12 @@ body::after {
   cursor:pointer; transition:all 0.2s; flex-shrink:0;
 }
 .clear-btn:active { transform:scale(0.95); opacity:0.6; }
-#state-lbl { flex:1; font-size:0.48rem; letter-spacing:0.1em; opacity:0.38; text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+#state-lbl { flex:1; font-size:0.48rem; letter-spacing:0.1em; opacity:0.62; text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
 /* FOOTER */
 .ftr {
   flex-shrink:0; padding:0.25rem 0.9rem; border-top:1px solid;
-  display:flex; justify-content:space-between; font-size:0.47rem; letter-spacing:0.1em; opacity:0.35;
+  display:flex; justify-content:space-between; font-size:0.47rem; letter-spacing:0.1em; opacity:0.55;
 }
 
 /* WOOSH */
@@ -250,20 +257,20 @@ function updateTheme(){
   applyEl('htitle',el=>{el.style.color=ms;el.style.textShadow=`0 0 14px ${rgb(RC,0.28)}`;});
   applyEl('hdr',el=>el.style.borderColor=md);
   applyEl('sdot',el=>{el.style.background=ms;el.style.boxShadow=`0 0 8px ${ms}`;});
-  applyEl('ftr',el=>{el.style.borderColor=md;el.style.color=rgb(RC,0.35);});
+  applyEl('ftr',el=>{el.style.borderColor=md;el.style.color=rgb(RC,0.55);});
   applyEl('ctrlbar',el=>el.style.borderColor=md);
-  ['fmod','rmod'].forEach((id,i)=>{ let c=lerpR(RT*0.4+i*0.4); applyEl(id,el=>el.style.borderColor=rgb(c,0.14)); });
+  ['fmod','rmod'].forEach((id,i)=>{ let c=lerpR(RT*0.4+i*0.4); applyEl(id,el=>el.style.borderColor=rgb(c,0.22)); });
   document.querySelectorAll('.mlbl').forEach((el,i)=>{ el.style.color=rgb(lerpR(RT*0.4+i*0.4),0.55); });
   applyEl('ftog',el=>{el.style.borderColor=rgb(fc,0.5);el.classList.toggle('uwu',isUwu);el.classList.toggle('eldritch',!isUwu);});
   applyEl('fthumb',el=>{el.style.background=rgb(fc);el.style.boxShadow=`0 0 6px ${rgb(fc)}`;});
   applyEl('fmode',el=>{el.textContent=isUwu?'UWU MODE':'ELDRITCH';el.style.color=rgb(fc);el.style.textShadow=`0 0 8px ${rgb(fc,0.5)}`;});
   applyEl('clearbtn',el=>{el.style.borderColor=rgb(RS,0.4);el.style.color=rgb(RS,0.6);});
-  applyEl('state-lbl',el=>el.style.color=rgb(RC,0.38));
+  applyEl('state-lbl',el=>el.style.color=rgb(RC,0.62));
   applyEl('rtext',el=>{let rc2=isUwu?lerpR(RT*0.4+0.15):RC;el.style.color=rgb(rc2);el.style.textShadow=`0 0 10px ${rgb(rc2,0.55)},0 0 22px ${rgb(rc2,0.18)}`;});
   let ic=isUwu?lerpR(0.12+instability*0.25):RC;
   applyEl('inst-fill',el=>{el.style.background=rgb(ic);el.style.boxShadow=`0 0 ${4+instability*10}px ${rgb(ic)}`;el.style.width=(instability*100)+'%';});
-  applyEl('hsym',el=>el.style.color=rgb(RC,0.12));
-  applyEl('htxt',el=>el.style.color=rgb(RC,0.18));
+  applyEl('hsym',el=>el.style.color=rgb(RC,0.25));
+  applyEl('htxt',el=>el.style.color=rgb(RC,0.42));
   applyEl('bootbtn',el=>{el.style.borderColor=ms;el.style.color=ms;});
 }
 
