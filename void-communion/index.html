@@ -49,6 +49,7 @@ body::after {
   font-family:'VT323',monospace; font-size:1.7rem; letter-spacing:4px;
   cursor:pointer; opacity:0; animation:bRev 0.3s 3.2s forwards;
   transition:all 0.2s;
+  color:rgba(0,255,65,0.9); border:1px solid rgba(0,255,65,0.6);
 }
 
 /* ── APP ── */
@@ -83,9 +84,9 @@ body::after {
 }
 .mod:last-child { border-bottom:none; }
 .mlbl { position:absolute; top:0.35rem; left:0.65rem; font-size:0.55rem; letter-spacing:2px; z-index:10; opacity:0.5; }
-.mid  { position:absolute; top:0.35rem; right:0.65rem; font-size:0.55rem; letter-spacing:1px; z-index:10; opacity:0.3; }
+.mid  { position:absolute; top:0.35rem; right:0.65rem; font-size:0.55rem; letter-spacing:1px; z-index:10; opacity:0.55; }
 .mod::before,.mod::after {
-  content:''; position:absolute; width:10px; height:10px; border-style:solid; opacity:0.3; z-index:5;
+  content:''; position:absolute; width:10px; height:10px; border-style:solid; opacity:0.45; z-index:5;
 }
 .mod::before { top:3px; left:3px; border-width:1px 0 0 1px; }
 .mod::after  { bottom:3px; right:3px; border-width:0 1px 1px 0; }
@@ -95,7 +96,7 @@ body::after {
 #bcanvas { width:100%; height:100%; display:block; }
 .bhint {
   position:absolute; bottom:0.5rem; left:50%; transform:translateX(-50%);
-  font-size:0.52rem; letter-spacing:2px; opacity:0.25; z-index:10; white-space:nowrap; pointer-events:none;
+  font-size:0.52rem; letter-spacing:2px; opacity:0.55; z-index:10; white-space:nowrap; pointer-events:none;
 }
 
 /* ── MOD 2: VOID TRANSMISSIONS ── */
@@ -333,7 +334,7 @@ function updateTheme(){
   [['bmod',0],['tmod',0.4]].forEach(([id,off])=>{
     let m=document.getElementById(id); if(!m) return;
     let c=lerpR(RT*0.45+off);
-    m.style.borderColor=rgb(c,0.14);
+    m.style.borderColor=rgb(c,0.22);
   });
 
   document.querySelectorAll('.mlbl').forEach((el,i)=>{
@@ -375,11 +376,11 @@ function updateTheme(){
 
   // bottom bar border
   let bb=document.getElementById('bottom-bar');
-  if(bb) bb.style.borderColor=rgb(RC,0.12);
+  if(bb) bb.style.borderColor=rgb(RC,0.55);
 
   // footer
   let ftr=document.getElementById('ftr');
-  if(ftr){ftr.style.borderColor=rgb(RC,0.12);ftr.style.color=rgb(RC,0.45);}
+  if(ftr){ftr.style.borderColor=rgb(RC,0.22);ftr.style.color=rgb(RC,0.62);}
 
   // bhint
   let bh=document.getElementById('bhint');
@@ -601,7 +602,7 @@ function animBreath(){
   bParticles=bParticles.filter(p=>p.life>0);
   bParticles.forEach(p=>{
     p.x+=p.vx;p.y+=p.vy;p.vx*=0.97;p.vy*=0.97;p.life-=p.decay;
-    c.beginPath();c.arc(p.x,p.y,p.size*p.life,0,Math.PI*2);
+    c.beginPath();c.arc(p.x,p.y,Math.max(0,p.size*p.life),0,Math.PI*2);
     c.fillStyle=rgb(p.c,p.life*0.8);
     c.shadowColor=rgb(p.c,0.6);c.shadowBlur=4;c.fill();c.shadowBlur=0;
   });
